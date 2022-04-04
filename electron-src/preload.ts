@@ -20,4 +20,5 @@ contextBridge.exposeInMainWorld("api", {
   message: async (message: string) =>
     await ipcRenderer.invoke("message", message),
   getConfig: async () => await ipcRenderer.invoke("getConfig"),
+  getAppName: async () => await ipcRenderer.invoke("getAppName"),
 });

@@ -17,6 +17,7 @@ declare global {
     api: {
       message: (message: string) => Promise<string>;
       getConfig: () => Promise<Config>;
+      getAppName: () => Promise<string>;
     };
   }
 }

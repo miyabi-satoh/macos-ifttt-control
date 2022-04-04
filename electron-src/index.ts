@@ -71,6 +71,10 @@ ipcMain.handle("message", (_event: IpcMainInvokeEvent, message: any) => {
   return "hi from electron";
 });
 
+ipcMain.handle("getAppName", (_event: IpcMainInvokeEvent) => {
+  return `${app.getName()} v${app.getVersion()}`;
+});
+
 ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
   // Get config
   const config_file = join(process.env.HOME!, "/.mic_config.json");
