@@ -1,6 +1,7 @@
 // Native
 import { join } from "path";
 import { format } from "url";
+import fs from "fs";
 
 // Packages
 import { BrowserWindow, app, ipcMain, IpcMainInvokeEvent } from "electron";
@@ -68,4 +69,22 @@ ipcMain.handle("message", (_event: IpcMainInvokeEvent, message: any) => {
   console.log(message);
   // setTimeout(() => event.sender.send("message", "hi from electron"), 500);
   return "hi from electron";
+});
+
+ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
+  // Get config
+  const config_file = join(process.env.HOME!, "/.mic_config.json");
+  try {
+    if (fs.existsSync(config_file)) {
+      const config_rawdata = fs.readFileSync(config_file, "utf-8");
+      return JSON.parse(config_rawdata);
+    }
+  } catch (err) {
+    console.error("getConfig::err", err);
+  }
+
+  return {
+    hash: "",
+    public_link: "",
+  };
 });

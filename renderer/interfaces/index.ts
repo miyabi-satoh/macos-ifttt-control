@@ -16,9 +16,15 @@ declare global {
   interface Window {
     api: {
       message: (message: string) => Promise<string>;
+      getConfig: () => Promise<Config>;
     };
   }
 }
+
+export type Config = {
+  hash: string;
+  public_link: string;
+};
 
 export type User = {
   id: number;

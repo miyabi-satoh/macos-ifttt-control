@@ -19,4 +19,5 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("api", {
   message: async (message: string) =>
     await ipcRenderer.invoke("message", message),
+  getConfig: async () => await ipcRenderer.invoke("getConfig"),
 });
