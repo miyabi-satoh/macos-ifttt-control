@@ -18,9 +18,16 @@ declare global {
       message: (message: string) => Promise<string>;
       getConfig: () => Promise<Config>;
       getAppName: () => Promise<string>;
+      createHashFile: (hash: string) => Promise<boolean>;
+      doInstall: (config: Config) => Promise<ApiResult>;
     };
   }
 }
+
+export type ApiResult = {
+  success: boolean;
+  message: string;
+};
 
 export type Config = {
   hash: string;

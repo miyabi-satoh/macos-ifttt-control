@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { contextBridge, ipcRenderer } from "electron";
+import { Config } from "../renderer/interfaces";
 
 // declare global {
 //   namespace NodeJS {
@@ -21,4 +22,8 @@ contextBridge.exposeInMainWorld("api", {
     await ipcRenderer.invoke("message", message),
   getConfig: async () => await ipcRenderer.invoke("getConfig"),
   getAppName: async () => await ipcRenderer.invoke("getAppName"),
+  createHashFile: async (hash: string) =>
+    await ipcRenderer.invoke("createHashFile", hash),
+  doInstall: async (config: Config) =>
+    await ipcRenderer.invoke("doInstall", config),
 });

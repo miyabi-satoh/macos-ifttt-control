@@ -2,11 +2,17 @@
 import { join } from "path";
 import { format } from "url";
 import fs from "fs";
+import { execSync } from "child_process";
 
 // Packages
 import { BrowserWindow, app, ipcMain, IpcMainInvokeEvent } from "electron";
 import isDev from "electron-is-dev";
 import prepareNext from "electron-next";
+import { Config } from "../renderer/interfaces";
+
+const HomePath = app.getPath("home");
+const DesktopPath = app.getPath("desktop");
+const ConfigFilePath = join(HomePath, ".mic_config.json");
 
 let mainWindow: BrowserWindow | null = null;
 function createWindow() {
@@ -77,10 +83,9 @@ ipcMain.handle("getAppName", (_event: IpcMainInvokeEvent) => {
 
 ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
   // Get config
-  const config_file = join(process.env.HOME!, "/.mic_config.json");
   try {
-    if (fs.existsSync(config_file)) {
-      const config_rawdata = fs.readFileSync(config_file, "utf-8");
+    if (fs.existsSync(ConfigFilePath)) {
+      const config_rawdata = fs.readFileSync(ConfigFilePath, "utf-8");
       return JSON.parse(config_rawdata);
     }
   } catch (err) {
@@ -92,3 +97,80 @@ ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
     public_link: "",
   };
 });
+
+ipcMain.handle("createHashFile", (_event: IpcMainInvokeEvent, hash: string) => {
+  // Create the file with the hash as name
+  try {
+    console.log(`createHashFile: ${hash}`);
+    fs.writeFileSync(join(DesktopPath, hash), hash);
+    return true;
+  } catch (err) {
+    console.log(err);
+  }
+  return false;
+});
+
+ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
+  let message = "";
+
+  try {
+    // Validate Dropbox url
+    if (
+      !validateUrl(config.public_link) ||
+      !config.public_link.includes("dropbox.com")
+    ) {
+      throw new Error("The entered Dropbox URL it's invalid.");
+    }
+
+    // Delete hash file
+    if (fs.existsSync(join(DesktopPath, config.hash))) {
+      fs.unlinkSync(join(DesktopPath, config.hash));
+    }
+
+    // Save the config file
+    const json = JSON.stringify(config);
+    fs.writeFileSync(ConfigFilePath, json);
+
+    // Register the service daemon
+    const daemon_file = join(
+      __dirname,
+      "cli/daemon/co.abdyfran.macosiftttcontrol.plist"
+    );
+    const library_path = join(
+      HomePath,
+      "Library/LaunchAgents/com.amiiby.macosiftttcontrol.plist"
+    );
+    execSync(`cp "${daemon_file}" "${library_path}"`);
+    execSync(`launchctl load ${library_path}`);
+
+    return {
+      success: true,
+      message: "success",
+    };
+  } catch (e: unknown) {
+    console.log(e);
+    message = e instanceof Error ? e.message : "Unknown error.";
+  }
+
+  return {
+    success: false,
+    message,
+  };
+});
+
+/**
+ * Validates a given URL
+ */
+function validateUrl(url: string) {
+  var pattern = new RegExp(
+    "^(https?:\\/\\/)?" + // protocol
+      "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // domain name
+      "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR ip (v4) address
+      "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // port and path
+      "(\\?[;&a-z\\d%_.~+=-]*)?" + // query string
+      "(\\#[-a-z\\d_]*)?$",
+    "i"
+  ); // fragment locator
+
+  return !!pattern.test(url);
+}
