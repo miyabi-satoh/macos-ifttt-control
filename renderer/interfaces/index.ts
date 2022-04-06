@@ -18,7 +18,8 @@ declare global {
       message: (message: string) => Promise<string>;
       getConfig: () => Promise<Config>;
       getAppName: () => Promise<string>;
-      createHashFile: (hash: string) => Promise<boolean>;
+      getIcons: () => Promise<[]>;
+      // createHashFile: (hash: string) => Promise<boolean>;
       doInstall: (config: Config) => Promise<ApiResult>;
     };
   }

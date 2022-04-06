@@ -1,3 +1,12 @@
+import {
+  faBook,
+  faCheck,
+  faPlus,
+  faRocket,
+  faTimes,
+  faTimesCircle,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 // import { Install } from "../components/Install";
 import Layout from "../components/Layout";
@@ -6,11 +15,16 @@ import { Config } from "../interfaces";
 const IndexPage = () => {
   const [config, setConfig] = useState<Config | undefined>(undefined);
   const [title, setTitle] = useState("");
+  const [icons, setIcons] = useState([]);
 
   useEffect(() => {
     const f = async () => {
       setConfig(await window.api.getConfig());
       setTitle(await window.api.getAppName());
+      // setIcons(await window.api.getIcons());
+      console.log("Render");
+
+      // TODO: Check Update
     };
     f();
   }, []);
@@ -74,7 +88,7 @@ const IndexPage = () => {
                 data-toggle="modal"
                 data-target="#add-webhook"
               >
-                <i className="fas fa-plus"></i> Add Webhook Trigger
+                <FontAwesomeIcon icon={faPlus} /> Add Webhook Trigger
               </button>
             </div>
             <div
@@ -93,7 +107,7 @@ const IndexPage = () => {
                       data-dismiss="modal"
                       aria-label="Close"
                     >
-                      <i className="fas fa-times fs-md"></i>
+                      <FontAwesomeIcon icon={faTimes} className="fs-md" />
                     </button>
                   </div>
                   <div className="modal-body">
@@ -144,14 +158,14 @@ const IndexPage = () => {
                       className="btn btn-sm btn-secondary"
                       data-dismiss="modal"
                     >
-                      <i className="fas fa-times"></i> Close
+                      <FontAwesomeIcon icon={faTimes} /> Close
                     </button>
                     <button
                       id="submit_add_webhook"
                       type="button"
                       className="btn btn-sm btn-info"
                     >
-                      <i className="fas fa-check"></i> Save changes
+                      <FontAwesomeIcon icon={faCheck} /> Save changes
                     </button>
                   </div>
                 </div>
@@ -165,7 +179,7 @@ const IndexPage = () => {
                 data-toggle="modal"
                 data-target="#add-event"
               >
-                <i className="fas fa-plus"></i> Add Webhook Event
+                <FontAwesomeIcon icon={faPlus} /> Add Webhook Event
               </button>
             </div>
 
@@ -185,7 +199,7 @@ const IndexPage = () => {
                       data-dismiss="modal"
                       aria-label="Close"
                     >
-                      <i className="fas fa-times fs-md"></i>
+                      <FontAwesomeIcon icon={faTimes} className="fs-md" />
                     </button>
                   </div>
                   <div className="modal-body">
@@ -266,14 +280,14 @@ const IndexPage = () => {
                       className="btn btn-sm btn-secondary"
                       data-dismiss="modal"
                     >
-                      <i className="fas fa-times"></i> Close
+                      <FontAwesomeIcon icon={faTimes} /> Close
                     </button>
                     <button
                       id="submit_add_event"
                       type="button"
                       className="btn btn-sm btn-info"
                     >
-                      <i className="fas fa-check"></i> Save changes
+                      <FontAwesomeIcon icon={faCheck} /> Save changes
                     </button>
                   </div>
                 </div>
@@ -286,58 +300,63 @@ const IndexPage = () => {
                 target="_blank"
                 className="btn btn-sm btn-info btn-block external-link"
               >
-                <i className="fas fa-rocket"></i> Marketplace
+                <FontAwesomeIcon icon={faRocket} /> Marketplace
               </a>
             </div>
           </div>
         </div>
-      </div>
-      <div id="footer" className="py-4 text-muted">
-        <div
-          id="mac_hash_tooltip"
-          className="tooltip bs-tooltip-top"
-          onClick={() => "$(this).fadeOut();"}
-          role="tooltip"
-          style={{ opacity: 1, display: "none" }}
-        >
-          <div className="arrow ml-2"></div>
-          <div className="tooltip-inner bg-secondary shadow fs-sm">
-            <i className="fas fa-check"></i> Copied to Clipboard!
+        <div id="footer" className="py-4 text-muted">
+          <div
+            id="mac_hash_tooltip"
+            className="tooltip bs-tooltip-top"
+            onClick={() => "$(this).fadeOut();"}
+            role="tooltip"
+            style={{ opacity: 1, display: "none" }}
+          >
+            <div className="arrow ml-2"></div>
+            <div className="tooltip-inner bg-secondary shadow fs-sm">
+              <FontAwesomeIcon icon={faCheck} /> Copied to Clipboard!
+            </div>
+          </div>
+          <small>
+            Mac Hash: <i id="mac_hash"></i>
+          </small>
+          <div className="float-right">
+            <a
+              href="https://github.com/abdyfranco/macos-ifttt-control/wiki"
+              target="_blank"
+              className="text-muted fs-sm external-link"
+            >
+              <FontAwesomeIcon icon={faBook} className="mr-1" /> Documentation
+            </a>
           </div>
         </div>
-        <small>
-          Mac Hash: <i id="mac_hash"></i>
-        </small>
-        <div className="float-right">
-          <a
-            href="https://github.com/abdyfranco/macos-ifttt-control/wiki"
-            target="_blank"
-            className="text-muted fs-sm external-link"
-          >
-            <i className="fas fa-book mr-1"></i> Documentation
-          </a>
-        </div>
-      </div>
 
-      <div className="modal fade" id="alert-dialog" tabIndex={-1} role="dialog">
-        <div className="modal-dialog" role="document">
-          <div className="modal-content">
-            <div className="modal-body text-center py-5">
-              <div className="pb-4">
-                <h1 id="alert-dialog-icon" className="pb-2 text-center">
-                  <i className="fas fa-times-circle"></i>
-                </h1>
-                <h4 id="alert-dialog-title"></h4>
-                <h6 id="alert-dialog-content" className="text-dark pt-2"></h6>
+        <div
+          className="modal fade"
+          id="alert-dialog"
+          tabIndex={-1}
+          role="dialog"
+        >
+          <div className="modal-dialog" role="document">
+            <div className="modal-content">
+              <div className="modal-body text-center py-5">
+                <div className="pb-4">
+                  <h1 id="alert-dialog-icon" className="pb-2 text-center">
+                    <FontAwesomeIcon icon={faTimesCircle} />
+                  </h1>
+                  <h4 id="alert-dialog-title"></h4>
+                  <h6 id="alert-dialog-content" className="text-dark pt-2"></h6>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  data-dismiss="modal"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                  Close
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                data-dismiss="modal"
-              >
-                <i className="fas fa-times"></i>
-                Close
-              </button>
             </div>
           </div>
         </div>

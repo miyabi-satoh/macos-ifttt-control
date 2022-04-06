@@ -13,6 +13,7 @@ import { Config } from "../renderer/interfaces";
 const HomePath = app.getPath("home");
 // const DesktopPath = app.getPath("desktop");
 const ConfigFilePath = join(HomePath, ".mic_config.json");
+const iconsFilePath = join(__dirname, "../resources/json/icons.json");
 
 let mainWindow: BrowserWindow | null = null;
 function createWindow() {
@@ -78,10 +79,12 @@ ipcMain.handle("message", (_event: IpcMainInvokeEvent, message: any) => {
 });
 
 ipcMain.handle("getAppName", (_event: IpcMainInvokeEvent) => {
+  console.log("Called getAppName");
   return `${app.getName()} v${app.getVersion()}`;
 });
 
 ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
+  console.log("Called getConfig");
   // Get config
   try {
     if (fs.existsSync(ConfigFilePath)) {
@@ -96,6 +99,20 @@ ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
     // hash: "",
     public_link: "",
   };
+});
+
+ipcMain.handle("getIcons", (_event: IpcMainInvokeEvent) => {
+  // Get icons
+  try {
+    if (fs.existsSync(iconsFilePath)) {
+      const config_rawdata = fs.readFileSync(iconsFilePath, "utf-8");
+      return JSON.parse(config_rawdata);
+    }
+  } catch (err) {
+    console.error("getIcons::err", err);
+  }
+
+  return [];
 });
 
 // ipcMain.handle("createHashFile", (_event: IpcMainInvokeEvent, hash: string) => {
