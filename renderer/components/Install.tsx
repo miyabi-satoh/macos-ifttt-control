@@ -5,19 +5,25 @@ import { faDropbox } from "@fortawesome/free-brands-svg-icons";
 import crypto from "crypto";
 
 const date = new Date();
-const digest = crypto
+const hash = crypto
   .createHash("md5")
   .update(Math.random() + "dtm" + date.getTime())
   .digest("hex");
 
 export function Install() {
-  const handleInstall = () => {
-    console.log(`handleInstall`);
+  const [publicLink, setPublicLink] = useState("");
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {};
+  const handleInstall = async () => {
+    const result = await window.api.doInstall({
+      // hash,
+      public_link: publicLink,
+    });
   };
 
   useEffect(() => {
     const f = async () => {
-      // const result = await window.api.createHashFile(digest);
+      // const result = await window.api.createHashFile(hash);
     };
 
     f();
@@ -28,8 +34,8 @@ export function Install() {
       <h2>Install macOS IFTTT Control</h2>
       <p className="pt-4 px-5">
         Before you can start using macOS IFTTT Control, you need to configure
-        your Dropbox account first. <br />A file named "<i>{digest}</i>" has
-        been placed on your Desktop, Now please create a folder called
+        your Dropbox account first. <br />A file named "<i>{hash}</i>" has been
+        placed on your Desktop, Now please create a folder called
         "macOSIFTTTControl" in the root of your Dropbox account and then upload
         the file into it.
       </p>
@@ -47,6 +53,7 @@ export function Install() {
             className="form-control shadow-sm border border-info text-secondary mt-2"
             id="dropbox_url"
             placeholder="Dropbox Public Link"
+            onChange={handleChange}
           />
         </div>
       </div>

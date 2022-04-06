@@ -11,7 +11,7 @@ import prepareNext from "electron-next";
 import { Config } from "../renderer/interfaces";
 
 const HomePath = app.getPath("home");
-const DesktopPath = app.getPath("desktop");
+// const DesktopPath = app.getPath("desktop");
 const ConfigFilePath = join(HomePath, ".mic_config.json");
 
 let mainWindow: BrowserWindow | null = null;
@@ -93,22 +93,22 @@ ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
   }
 
   return {
-    hash: "",
+    // hash: "",
     public_link: "",
   };
 });
 
-ipcMain.handle("createHashFile", (_event: IpcMainInvokeEvent, hash: string) => {
-  // Create the file with the hash as name
-  try {
-    console.log(`createHashFile: ${hash}`);
-    fs.writeFileSync(join(DesktopPath, hash), hash);
-    return true;
-  } catch (err) {
-    console.log(err);
-  }
-  return false;
-});
+// ipcMain.handle("createHashFile", (_event: IpcMainInvokeEvent, hash: string) => {
+//   // Create the file with the hash as name
+//   try {
+//     console.log(`createHashFile: ${hash}`);
+//     fs.writeFileSync(join(DesktopPath, hash), hash);
+//     return true;
+//   } catch (err) {
+//     console.log(err);
+//   }
+//   return false;
+// });
 
 ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
   let message = "";
@@ -123,9 +123,9 @@ ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
     }
 
     // Delete hash file
-    if (fs.existsSync(join(DesktopPath, config.hash))) {
-      fs.unlinkSync(join(DesktopPath, config.hash));
-    }
+    // if (fs.existsSync(join(DesktopPath, config.hash))) {
+    //   fs.unlinkSync(join(DesktopPath, config.hash));
+    // }
 
     // Save the config file
     const json = JSON.stringify(config);

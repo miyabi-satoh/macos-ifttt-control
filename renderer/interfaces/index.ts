@@ -30,7 +30,6 @@ export type ApiResult = {
 };
 
 export type Config = {
-  hash: string;
   public_link: string;
 };
 
