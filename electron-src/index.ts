@@ -8,7 +8,7 @@ import { execSync } from "child_process";
 import { BrowserWindow, app, ipcMain, IpcMainInvokeEvent } from "electron";
 import isDev from "electron-is-dev";
 import prepareNext from "electron-next";
-import { Config } from "../renderer/interfaces";
+import { Config } from "./types";
 
 const HomePath = app.getPath("home");
 // const DesktopPath = app.getPath("desktop");

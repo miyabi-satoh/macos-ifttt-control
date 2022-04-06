@@ -5,6 +5,7 @@
 // import User from 'path/to/interfaces';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { IpcRenderer } from "electron";
+import { ApiResult, Config } from "../../electron-src/types";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -25,16 +26,9 @@ declare global {
   }
 }
 
-export type ApiResult = {
-  success: boolean;
-  message: string;
-};
-
-export type Config = {
-  public_link: string;
-};
-
 export type User = {
   id: number;
   name: string;
 };
+
+export * from "../../electron-src/types";

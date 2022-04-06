@@ -2,27 +2,48 @@ import {
   faBook,
   faCheck,
   faPlus,
-  faRocket,
   faTimes,
   faTimesCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
+import { Button, Modal } from "react-bootstrap";
 // import { Install } from "../components/Install";
 import Layout from "../components/Layout";
 import { Config } from "../interfaces";
+
+type WebhookProps = {
+  url: string;
+  icon: string[];
+  color: string;
+  title: string;
+};
 
 const IndexPage = () => {
   const [config, setConfig] = useState<Config | undefined>(undefined);
   const [title, setTitle] = useState("");
   const [icons, setIcons] = useState([]);
+  const [triggers, setTriggers] = useState([]);
+  const [modalName, setModalName] = useState("");
+  const [webhookProps, setWebhookProps] = useState<WebhookProps>({
+    url: "",
+    icon: [],
+    color: "",
+    title: "",
+  });
+
+  const handleShowModal = (name: string) => {
+    setModalName(name);
+  };
+  const handleCloseModal = () => {
+    setModalName("");
+  };
 
   useEffect(() => {
     const f = async () => {
       setConfig(await window.api.getConfig());
       setTitle(await window.api.getAppName());
-      // setIcons(await window.api.getIcons());
-      console.log("Render");
+      setIcons(await window.api.getIcons());
 
       // TODO: Check Update
     };
@@ -42,6 +63,9 @@ const IndexPage = () => {
           </h6>
           <div className="row px-3">
             {/* Webhooks will be listed here */}
+            {/* triggers.forEach(function (element, id) {
+                $('#webhooks .row').append('<div class="col-3 col-md-2 col-lg-1 pb-4"><div class="btn btn-sm btn-secondary delete-webhook" data-webhook-id="' + id + '"><i class="fas fa-times"></i></div> <div class="btn btn-block btn-sm btn-' + element.color + ' trigger-webhook" data-webhook="' + element.url + '"><i class="' + element.icon + ' fs-lg my-2"></i><br/> ' + element.title + '</div></div>');
+            }); */}
 
             <div
               id="webhooks-empty"
@@ -81,106 +105,100 @@ const IndexPage = () => {
             <small>Options:</small>
           </h6>
           <div className="row">
-            <div className="col-12 col-md-4 text-left pb-1">
-              <button
-                type="button"
-                className="btn btn-sm btn-info btn-block"
-                data-toggle="modal"
-                data-target="#add-webhook"
+            <div className="col-12 col-md-4 text-start pb-1 d-grid">
+              <Button
+                variant="info"
+                size="sm"
+                onClick={() => handleShowModal("Trigger")}
               >
                 <FontAwesomeIcon icon={faPlus} /> Add Webhook Trigger
-              </button>
+              </Button>
             </div>
-            <div
-              className="modal fade"
-              id="add-webhook"
-              tabIndex={-1}
-              role="dialog"
-            >
-              <div className="modal-dialog" role="document">
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title text-info">Add Webhook</h5>
-                    <button
-                      type="button"
-                      className="close mt-n4"
-                      data-dismiss="modal"
-                      aria-label="Close"
-                    >
-                      <FontAwesomeIcon icon={faTimes} className="fs-md" />
-                    </button>
-                  </div>
-                  <div className="modal-body">
-                    <div className="form-group">
-                      <label htmlFor="webhook_url">Webhook URL</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="webhook_url"
-                        placeholder="Webhook URL"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="webhook_icon">Webhook Icon</label>
-                      <div id="webhook_icons" className="p-1">
-                        {/* Font Awesome icons will be listed here */}
-                      </div>
-                      <input
-                        type="hidden"
-                        id="webhook_icon"
-                        value="fas fa-rocket"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="webhook_color">Webhook Color</label>
-                      <select className="form-control" id="webhook_color">
-                        <option value="info">Cyan</option>
-                        <option value="primary">Blue</option>
-                        <option value="success">Green</option>
-                        <option value="warning">Yellow</option>
-                        <option value="danger">Red</option>
-                        <option value="dark">Gray</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="webhook_title">Webhook Title</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="webhook_title"
-                        placeholder="Webhook Title"
-                      />
-                    </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      data-dismiss="modal"
-                    >
-                      <FontAwesomeIcon icon={faTimes} /> Close
-                    </button>
-                    <button
-                      id="submit_add_webhook"
-                      type="button"
-                      className="btn btn-sm btn-info"
-                    >
-                      <FontAwesomeIcon icon={faCheck} /> Save changes
-                    </button>
+            <Modal show={modalName == "Trigger"} onHide={handleCloseModal}>
+              <Modal.Header closeButton>
+                <Modal.Title>Add Webhook</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                <div className="form-group">
+                  <label htmlFor="webhook_url">Webhook URL</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="webhook_url"
+                    placeholder="Webhook URL"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="webhook_icon">Webhook Icon</label>
+                  <div id="webhook_icons" className="p-1">
+                    {/* Font Awesome icons will be listed here */}
+                    {icons.map((element) => {
+                      if (element[1] == null) {
+                        element[1] = "fas";
+                      }
+
+                      if (element[2] == null) {
+                        element[2] = element[0];
+                      }
+
+                      return (
+                        <div
+                          className="btn btn-sm btn-info w-px-40 m-2"
+                          onClick={() =>
+                            setWebhookProps({
+                              ...webhookProps,
+                              icon: [element[1], element[2]],
+                            })
+                          }
+                        >
+                          <FontAwesomeIcon
+                            icon={[element[1], element[2]]}
+                            className="fs-md"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            </div>
+                <div className="form-group">
+                  <label htmlFor="webhook_color">Webhook Color</label>
+                  <select className="form-control" id="webhook_color">
+                    <option value="info">Cyan</option>
+                    <option value="primary">Blue</option>
+                    <option value="success">Green</option>
+                    <option value="warning">Yellow</option>
+                    <option value="danger">Red</option>
+                    <option value="dark">Gray</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="webhook_title">Webhook Title</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="webhook_title"
+                    placeholder="Webhook Title"
+                  />
+                </div>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCloseModal}
+                >
+                  <FontAwesomeIcon icon={faTimes} /> Close
+                </Button>
+                <Button variant="info" size="sm" onClick={handleCloseModal}>
+                  <FontAwesomeIcon icon={faCheck} /> Save changes
+                </Button>
+              </Modal.Footer>
+            </Modal>
 
-            <div className="col-12 col-md-4 text-center pb-1">
-              <button
-                type="button"
-                className="btn btn-sm btn-info btn-block"
-                data-toggle="modal"
-                data-target="#add-event"
-              >
+            <div className="col-12 col-md-4 text-center pb-1 d-grid">
+              <Button variant="info" size="sm">
                 <FontAwesomeIcon icon={faPlus} /> Add Webhook Event
-              </button>
+              </Button>
             </div>
 
             <div
@@ -292,16 +310,6 @@ const IndexPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="col-12 col-md-4 text-right pb-1">
-              <a
-                href="http://abdyfran.co/projects/macos-ifttt/marketplace"
-                target="_blank"
-                className="btn btn-sm btn-info btn-block external-link"
-              >
-                <FontAwesomeIcon icon={faRocket} /> Marketplace
-              </a>
             </div>
           </div>
         </div>
