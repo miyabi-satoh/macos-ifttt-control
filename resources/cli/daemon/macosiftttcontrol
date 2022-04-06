@@ -8,4 +8,5 @@ if [ "$BASEDIR" == "." ]; then
 fi
 
 # Start service
-php "$BASEDIR/../service.php"
+# php "$BASEDIR/../service.php"
+python "$BASEDIR/../service.py"

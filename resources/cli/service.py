@@ -125,8 +125,8 @@ try:
 
                 # Check if the event can be triggered
                 battery_threshold = 20
-                if (battery_percentage <= battery_threshold) and (control['auto-battery'] > battery_threshold):
-                    control['auto-battery'] = battery_percentage - 1
+                if (battery_percentage <= battery_threshold) and (control[webhook_command] > battery_threshold):
+                    control[webhook_command] = battery_percentage - 1
 
                     # Trigger all the webhooks
                     for trigger in webhooks_url:
@@ -137,12 +137,14 @@ try:
                         # Trigger webhook
                         trigger_webhook(
                             trigger['url'], trigger['command'], battery_percentage, status_response.stdout)
-                elif (battery_percentage >= battery_threshold) and (control['auto-battery'] < battery_threshold):
+                elif (battery_percentage >= battery_threshold) and (control[webhook_command] < battery_threshold):
                     # The battery is not more under the threshold
-                    control['auto-battery'] = battery_percentage + 1
+                    control[webhook_command] = battery_percentage + 1
 
-            # Execute auto-bluetooth-off webhooks
-            if webhook_command == 'auto-bluetooth-off':
+            # Execute auto-bluetooth-on/off webhooks
+            if webhook_command == 'auto-bluetooth-on' or webhook_command == 'auto-bluetooth-off':
+                check_status = 'OFF' if 'off' in webhook_command else 'ON'
+
                 status_response = m_cli_exec('bluetooth status')
 
                 # Get bluetooth status
@@ -153,8 +155,8 @@ try:
                     bluetooth_status = 'OFF'
 
                 # Check if the event can be triggered
-                if (bluetooth_status == 'ON' and not control['auto-bluetooth-on']):
-                    control['auto-bluetooth-on'] = True
+                if (bluetooth_status == check_status) and (not control[webhook_command]):
+                    control[webhook_command] = True
 
                     # Trigger all the webhooks
                     for trigger in webhooks_url:
@@ -165,11 +167,9 @@ try:
                         # Trigger webhook
                         trigger_webhook(
                             trigger['url'], trigger['command'], bluetooth_status, status_response)
-                elif bluetooth_status == 'OFF' and control['auto-bluetooth-on']:
-                    control['auto-bluetooth-on'] = False
-
-            # Execute auto-bluetooth-on webhooks
-            # TODO
+                elif (bluetooth_status != check_status) and (control[webhook_command]):
+                    # The bluetooth has been turned on/off again
+                    control[webhook_command] = False
 
         # Update control file
         with open(triggers_file, 'w') as f:
