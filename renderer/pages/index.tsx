@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
 // import { Install } from "../components/Install";
 import Layout from "../components/Layout";
@@ -13,6 +13,66 @@ import {
 import { IconContext } from "react-icons";
 import { Icons } from "../components/Icons";
 
+const colors = [
+  { value: "info", text: "Cyan" },
+  { value: "primary", text: "Blue" },
+  { value: "success", text: "Green" },
+  { value: "warning", text: "Yellow" },
+  { value: "danger", text: "Red" },
+  { value: "dark", text: "Gray" },
+] as const;
+
+const eventTriggers = [
+  { value: "", text: "Automatic Trigger" },
+  { value: "auto-battery", text: "Battery drops below 20%" },
+  { value: "auto-bluetooth-off", text: "Bluetooth is turned off" },
+  { value: "auto-bluetooth-on", text: "Bluetooth is turned on" },
+  { value: "", text: "" },
+  { value: "", text: "macOS IFTTT Events" },
+  { value: "automator", text: "automator" },
+  { value: "ifttt", text: "ifttt" },
+  { value: "ifttt", text: "macrodroid" },
+  { value: "ifttt", text: "webhook" },
+  { value: "bluetooth", text: "bluetooth" },
+  { value: "dir", text: "dir" },
+  { value: "disk", text: "disk" },
+  { value: "display", text: "display" },
+  { value: "dns", text: "dns" },
+  { value: "dock", text: "dock" },
+  { value: "finder", text: "finder" },
+  { value: "firewall", text: "firewall" },
+  { value: "flightmode", text: "flightmode" },
+  { value: "gatekeeper", text: "gatekeeper" },
+  { value: "hostname", text: "hostname" },
+  { value: "info", text: "info" },
+  { value: "itunes", text: "itunes" },
+  { value: "lock", text: "lock" },
+  { value: "ntp", text: "ntp" },
+  { value: "printer", text: "printer" },
+  { value: "network", text: "network" },
+  { value: "nosleep", text: "nosleep" },
+  { value: "notification", text: "notification" },
+  { value: "restart", text: "restart" },
+  { value: "safeboot", text: "safeboot" },
+  { value: "screensaver", text: "screensaver" },
+  { value: "service", text: "service" },
+  { value: "shutdown", text: "shutdown" },
+  { value: "sleep", text: "sleep" },
+  { value: "timezone", text: "timezone" },
+  { value: "touchbar", text: "touchbar" },
+  { value: "trash", text: "trash" },
+  { value: "update", text: "update" },
+  { value: "user", text: "user" },
+  { value: "volume", text: "volume" },
+  { value: "vpn", text: "vpn" },
+  { value: "wallpaper", text: "wallpaper" },
+  { value: "wifi", text: "wifi" },
+  { value: "download", text: "download" },
+  { value: "notificationcenter", text: "notificationcenter" },
+  { value: "open", text: "open" },
+  { value: "say", text: "say" },
+];
+
 type WebhookProps = {
   url: string;
   icon: string[];
@@ -20,21 +80,47 @@ type WebhookProps = {
   title: string;
 };
 
+const webhookPropsDefault = {
+  url: "",
+  icon: [],
+  color: "",
+  title: "",
+};
+
+type ModalType = "" | "Trigger" | "Event" | "alert";
+
 const IndexPage = () => {
   const [config, setConfig] = useState<Config | undefined>(undefined);
   const [title, setTitle] = useState("");
   const [icons, setIcons] = useState([]);
   const [triggers, setTriggers] = useState([]);
   const [events, setEvents] = useState([]);
-  const [modalName, setModalName] = useState("");
+  const [modalName, setModalName] = useState<ModalType>("");
   const [webhookProps, setWebhookProps] = useState<WebhookProps>({
-    url: "",
-    icon: [],
-    color: "",
-    title: "",
+    ...webhookPropsDefault,
   });
 
-  const handleShowModal = (name: string) => {
+  const handleChangeUrl = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setWebhookProps({ ...webhookProps, url: ev.target.value });
+  };
+
+  const handleChangeTitle = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setWebhookProps({ ...webhookProps, title: ev.target.value });
+  };
+
+  const handleChangeColor = (ev: React.ChangeEvent<HTMLSelectElement>) => {
+    setWebhookProps({ ...webhookProps, color: ev.target.value });
+  };
+
+  const handleAddWebhook = (ev: React.MouseEvent<HTMLButtonElement>) => {
+    console.log(webhookProps);
+    handleCloseModal();
+  };
+
+  const handleShowModal = (name: ModalType) => {
+    if (name == "Trigger") {
+      setWebhookProps({ ...webhookProps });
+    }
     setModalName(name);
   };
   const handleCloseModal = () => {
@@ -154,7 +240,7 @@ const IndexPage = () => {
             <small>Options:</small>
           </h6>
           <div className="row">
-            <div className="col-12 col-md-4 text-start pb-1 d-grid">
+            <div className="col-12 col-md-6 text-start pb-1 d-grid">
               <Button
                 variant="info"
                 size="sm"
@@ -170,7 +256,11 @@ const IndexPage = () => {
               <Modal.Body>
                 <Form.Group>
                   <Form.Label>Webhook URL</Form.Label>
-                  <Form.Control type="text" placeholder="Webhook URL" />
+                  <Form.Control
+                    type="text"
+                    placeholder="Webhook URL"
+                    onChange={handleChangeUrl}
+                  />
                 </Form.Group>
                 <Form.Group>
                   <Form.Label>Webhook Icon</Form.Label>
@@ -188,18 +278,23 @@ const IndexPage = () => {
                 </Form.Group>
                 <Form.Group>
                   <Form.Label>Webhook Color</Form.Label>
-                  <Form.Select>
-                    <option value="info">Cyan</option>
-                    <option value="primary">Blue</option>
-                    <option value="success">Green</option>
-                    <option value="warning">Yellow</option>
-                    <option value="danger">Red</option>
-                    <option value="dark">Gray</option>
+                  <Form.Select onChange={handleChangeColor}>
+                    {colors.map((color) => {
+                      return (
+                        <option key={color.value} value={color.value}>
+                          {color.text}
+                        </option>
+                      );
+                    })}
                   </Form.Select>
                 </Form.Group>
                 <Form.Group>
                   <Form.Label>Webhook Title</Form.Label>
-                  <Form.Control type="text" placeholder="Webhook Title" />
+                  <Form.Control
+                    type="text"
+                    placeholder="Webhook Title"
+                    onChange={handleChangeTitle}
+                  />
                 </Form.Group>
               </Modal.Body>
               <Modal.Footer>
@@ -210,13 +305,13 @@ const IndexPage = () => {
                 >
                   <FaTimes /> Close
                 </Button>
-                <Button variant="info" size="sm" onClick={handleCloseModal}>
+                <Button variant="info" size="sm" onClick={handleAddWebhook}>
                   <FaCheck /> Save changes
                 </Button>
               </Modal.Footer>
             </Modal>
 
-            <div className="col-12 col-md-4 text-center pb-1 d-grid">
+            <div className="col-12 col-md-6 text-center pb-1 d-grid">
               <Button
                 variant="info"
                 size="sm"
@@ -238,62 +333,21 @@ const IndexPage = () => {
                 <Form.Group>
                   <Form.Label>Trigger</Form.Label>
                   <Form.Select>
-                    <option disabled>Automatic Trigger</option>
-                    <option value="auto-battery">
-                      Battery drops below 20%
-                    </option>
-                    <option value="auto-bluetooth-off">
-                      Bluetooth is turned off
-                    </option>
-                    <option value="auto-bluetooth-on">
-                      Bluetooth is turned on
-                    </option>
-                    <option disabled></option>
-                    <option disabled>macOS IFTTT Events</option>
-                    <option value="automator">automator</option>
-                    <option value="ifttt">ifttt</option>
-                    <option value="ifttt">macrodroid</option>
-                    <option value="ifttt">webhook</option>
-                    <option value="bluetooth">bluetooth</option>
-                    <option value="dir">dir</option>
-                    <option value="disk">disk</option>
-                    <option value="display">display</option>
-                    <option value="dns">dns</option>
-                    <option value="dock">dock</option>
-                    <option value="finder">finder</option>
-                    <option value="firewall">firewall</option>
-                    <option value="flightmode">flightmode</option>
-                    <option value="gatekeeper">gatekeeper</option>
-                    <option value="hostname">hostname</option>
-                    <option value="info">info</option>
-                    <option value="itunes">itunes</option>
-                    <option value="lock">lock</option>
-                    <option value="ntp">ntp</option>
-                    <option value="printer">printer</option>
-                    <option value="network">network</option>
-                    <option value="nosleep">nosleep</option>
-                    <option value="notification">notification</option>
-                    <option value="restart">restart</option>
-                    <option value="safeboot">safeboot</option>
-                    <option value="screensaver">screensaver</option>
-                    <option value="service">service</option>
-                    <option value="shutdown">shutdown</option>
-                    <option value="sleep">sleep</option>
-                    <option value="timezone">timezone</option>
-                    <option value="touchbar">touchbar</option>
-                    <option value="trash">trash</option>
-                    <option value="update">update</option>
-                    <option value="user">user</option>
-                    <option value="volume">volume</option>
-                    <option value="vpn">vpn</option>
-                    <option value="wallpaper">wallpaper</option>
-                    <option value="wifi">wifi</option>
-                    <option value="download">download</option>
-                    <option value="notificationcenter">
-                      notificationcenter
-                    </option>
-                    <option value="open">open</option>
-                    <option value="say">say</option>
+                    {eventTriggers.map(({ value, text }, id) => {
+                      if (value) {
+                        return (
+                          <option key={`event${id}`} value={value}>
+                            {text}
+                          </option>
+                        );
+                      } else {
+                        return (
+                          <option key={`event${id}`} disabled>
+                            {text}
+                          </option>
+                        );
+                      }
+                    })}
                   </Form.Select>
                 </Form.Group>
               </Modal.Body>
@@ -342,34 +396,21 @@ const IndexPage = () => {
           </div>
         </div>
 
-        <div
-          className="modal fade"
-          id="alert-dialog"
-          tabIndex={-1}
-          role="dialog"
-        >
-          <div className="modal-dialog" role="document">
-            <div className="modal-content">
-              <div className="modal-body text-center py-5">
-                <div className="pb-4">
-                  <h1 id="alert-dialog-icon" className="pb-2 text-center">
-                    <FaTimesCircle />
-                  </h1>
-                  <h4 id="alert-dialog-title"></h4>
-                  <h6 id="alert-dialog-content" className="text-dark pt-2"></h6>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  data-dismiss="modal"
-                >
-                  <FaTimes />
-                  Close
-                </button>
-              </div>
+        <Modal show={modalName == "alert"} onHide={handleCloseModal}>
+          <Modal.Body>
+            <div className="pb-4">
+              <h1 id="alert-dialog-icon" className="pb-2 text-center">
+                <FaTimesCircle />
+              </h1>
+              <h4 id="alert-dialog-title"></h4>
+              <h6 id="alert-dialog-content" className="text-dark pt-2"></h6>
             </div>
-          </div>
-        </div>
+            <Button variant="secondary" onClick={handleCloseModal}>
+              <FaTimes />
+              Close
+            </Button>
+          </Modal.Body>
+        </Modal>
       </div>
     </Layout>
   );
