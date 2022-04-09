@@ -16,11 +16,12 @@ declare global {
   }
   interface Window {
     api: {
-      message: (message: string) => Promise<string>;
-      getConfig: () => Promise<Config>;
+      getConfigPath: (name: string) => Promise<string>;
+      getResourcePath: (name: string) => Promise<string>;
       getAppName: () => Promise<string>;
-      getIcons: () => Promise<[]>;
-      // createHashFile: (hash: string) => Promise<boolean>;
+      readFile: (path: string) => Promise<ApiResult>;
+      writeFile: (path: string, data: string) => Promise<ApiResult>;
+      runWebhook: (url: string) => Promise<ApiResult>;
       doInstall: (config: Config) => Promise<ApiResult>;
     };
   }
