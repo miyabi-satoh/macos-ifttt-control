@@ -4,13 +4,16 @@ import { contextBridge, ipcRenderer } from "electron";
 import { Config } from "./types";
 
 contextBridge.exposeInMainWorld("api", {
-  message: async (message: string) =>
-    await ipcRenderer.invoke("message", message),
-  getConfig: async () => await ipcRenderer.invoke("getConfig"),
+  getConfigPath: async (name: string) =>
+    await ipcRenderer.invoke("getConfigPath", name),
+  getResourcePath: async (name: string) =>
+    await ipcRenderer.invoke("getResourcePath", name),
   getAppName: async () => await ipcRenderer.invoke("getAppName"),
-  getIcons: async () => await ipcRenderer.invoke("getIcons"),
-  // createHashFile: async (hash: string) =>
-  //   await ipcRenderer.invoke("createHashFile", hash),
+  readFile: async (path: string) => await ipcRenderer.invoke("readFile", path),
+  writeFile: async (path: string, data: string) =>
+    await ipcRenderer.invoke("writeFile", path, data),
+  runWebhook: async (url: string) =>
+    await ipcRenderer.invoke("runWebhook", url),
   doInstall: async (config: Config) =>
     await ipcRenderer.invoke("doInstall", config),
 });
