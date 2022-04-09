@@ -3,17 +3,19 @@ import { join } from "path";
 import { format } from "url";
 import fs from "fs";
 import { execSync } from "child_process";
+import fetch from "node-fetch";
 
 // Packages
 import { BrowserWindow, app, ipcMain, IpcMainInvokeEvent } from "electron";
 import isDev from "electron-is-dev";
 import prepareNext from "electron-next";
-import { Config } from "./types";
+import { ApiResult, Config } from "./types";
 
 const HomePath = app.getPath("home");
+const ResourcePath = join(__dirname, "../resources");
 // const DesktopPath = app.getPath("desktop");
 const ConfigFilePath = join(HomePath, ".mic_config.json");
-const iconsFilePath = join(__dirname, "../resources/json/icons.json");
+// const iconsFilePath = join(__dirname, "../resources/json/icons.json");
 
 let mainWindow: BrowserWindow | null = null;
 function createWindow() {
@@ -71,64 +73,108 @@ app.on("activate", () => {
   if (mainWindow === null) createWindow();
 });
 
-// listen the channel `message` and resend the received message to the renderer process
-ipcMain.handle("message", (_event: IpcMainInvokeEvent, message: any) => {
-  console.log(message);
-  // setTimeout(() => event.sender.send("message", "hi from electron"), 500);
-  return "hi from electron";
+ipcMain.handle("getConfigPath", (_event: IpcMainInvokeEvent, name: string) => {
+  return join(HomePath, name);
 });
+
+ipcMain.handle(
+  "getResourcePath",
+  (_event: IpcMainInvokeEvent, name: string) => {
+    return join(ResourcePath, name);
+  }
+);
 
 ipcMain.handle("getAppName", (_event: IpcMainInvokeEvent) => {
   console.log("Called getAppName");
   return `${app.getName()} v${app.getVersion()}`;
 });
 
-ipcMain.handle("getConfig", (_event: IpcMainInvokeEvent) => {
-  console.log("Called getConfig");
-  // Get config
-  try {
-    if (fs.existsSync(ConfigFilePath)) {
-      const config_rawdata = fs.readFileSync(ConfigFilePath, "utf-8");
-      return JSON.parse(config_rawdata);
-    }
-  } catch (err) {
-    console.error("getConfig::err", err);
-  }
+ipcMain.handle(
+  "writeFile",
+  (_event: IpcMainInvokeEvent, path: string, data: string) => {
+    const res: ApiResult = {
+      success: false,
+      message: "",
+      data: "",
+    };
 
-  return {
-    // hash: "",
-    public_link: "",
+    try {
+      fs.writeFileSync(path, data);
+      res.success = true;
+    } catch (e: unknown) {
+      console.log(e);
+      res.message = e instanceof Error ? e.message : "Unknown error.";
+    }
+
+    return res;
+  }
+);
+
+ipcMain.handle("readFile", (_event: IpcMainInvokeEvent, path: string) => {
+  const res: ApiResult = {
+    success: false,
+    message: "",
+    data: "",
   };
-});
 
-ipcMain.handle("getIcons", (_event: IpcMainInvokeEvent) => {
-  // Get icons
   try {
-    if (fs.existsSync(iconsFilePath)) {
-      const config_rawdata = fs.readFileSync(iconsFilePath, "utf-8");
-      return JSON.parse(config_rawdata);
+    if (fs.existsSync(path)) {
+      res.data = fs.readFileSync(path, "utf-8");
     }
-  } catch (err) {
-    console.error("getIcons::err", err);
+    res.success = true;
+  } catch (e: unknown) {
+    console.log(e);
+    res.message = e instanceof Error ? e.message : "Unknown error.";
   }
 
-  return [];
+  return res;
 });
 
-// ipcMain.handle("createHashFile", (_event: IpcMainInvokeEvent, hash: string) => {
-//   // Create the file with the hash as name
-//   try {
-//     console.log(`createHashFile: ${hash}`);
-//     fs.writeFileSync(join(DesktopPath, hash), hash);
-//     return true;
-//   } catch (err) {
-//     console.log(err);
-//   }
-//   return false;
-// });
+ipcMain.handle(
+  "runWebhook",
+  async (_event: IpcMainInvokeEvent, url: string) => {
+    const res: ApiResult = {
+      success: false,
+      message: "",
+      data: "",
+    };
+
+    try {
+      const response = await fetch(url);
+      // , {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({}),
+      // });
+      if (response.ok) {
+        res.success = true;
+        res.message = await response.text();
+      } else {
+        const json = await response.json();
+        const message = json.errors
+          .map((err: { message: string }) => {
+            console.log(err.message);
+            return err.message;
+          })
+          .join("");
+        console.log(message);
+        throw new Error(message);
+      }
+    } catch (e: unknown) {
+      console.log(e);
+      res.message = e instanceof Error ? e.message : "Unknown error.";
+    }
+
+    return res;
+  }
+);
 
 ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
-  let message = "";
+  const res: ApiResult = {
+    success: false,
+    message: "",
+    data: "",
+  };
 
   try {
     // Validate Dropbox url
@@ -160,19 +206,13 @@ ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
     execSync(`cp "${daemon_file}" "${library_path}"`);
     execSync(`launchctl load ${library_path}`);
 
-    return {
-      success: true,
-      message: "success",
-    };
+    res.success = true;
   } catch (e: unknown) {
     console.log(e);
-    message = e instanceof Error ? e.message : "Unknown error.";
+    res.message = e instanceof Error ? e.message : "Unknown error.";
   }
 
-  return {
-    success: false,
-    message,
-  };
+  return res;
 });
 
 /**
