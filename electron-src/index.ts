@@ -12,7 +12,9 @@ import prepareNext from "electron-next";
 import { ApiResult, Config } from "./types";
 
 const HomePath = app.getPath("home");
-const ResourcePath = join(__dirname, "../resources");
+const getResourcePath = (name: string) =>
+  join(__dirname, "../resources", name).replace("app.asar/resources", "app");
+
 // const DesktopPath = app.getPath("desktop");
 const ConfigFilePath = join(HomePath, ".mic_config.json");
 // const iconsFilePath = join(__dirname, "../resources/json/icons.json");
@@ -80,7 +82,8 @@ ipcMain.handle("getConfigPath", (_event: IpcMainInvokeEvent, name: string) => {
 ipcMain.handle(
   "getResourcePath",
   (_event: IpcMainInvokeEvent, name: string) => {
-    return join(ResourcePath, name);
+    // return join(ResourcePath, name);
+    return getResourcePath(name);
   }
 );
 
@@ -195,9 +198,12 @@ ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
     fs.writeFileSync(ConfigFilePath, json);
 
     // Register the service daemon
-    const daemon_file = join(
-      __dirname,
-      "cli/daemon/co.abdyfran.macosiftttcontrol.plist"
+    // const daemon_file = join(
+    //   __dirname,
+    //   "cli/daemon/com.amiiby.macosiftttcontrol.plist"
+    // );
+    const daemon_file = getResourcePath(
+      "cli/daemon/com.amiiby.macosiftttcontrol.plist"
     );
     const library_path = join(
       HomePath,

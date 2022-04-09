@@ -138,6 +138,7 @@ const IndexPage = () => {
   const [alertType, setAlertType] = useState<AlertType>("");
   const [webhookProps, setWebhookProps] =
     useState<WebhookProps>(webhookPropsDefault);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const alertTextClass = useMemo(() => {
     if (alertType == "danger") {
@@ -287,6 +288,7 @@ const IndexPage = () => {
         });
         // console.log(reactIcons);
         // await window.api.writeFile(path, JSON.stringify(reactIcons));
+        // setDebugInfo([path]);
         setIcons(reactIcons);
       }
       // TODO: Check Update
@@ -439,8 +441,12 @@ const IndexPage = () => {
                     onChange={handleChangeIcon}
                   >
                     {icons.map((icon) => {
-                      const IconComponent = dynamic(() =>
-                        import("react-icons/fa").then((mod: any) => mod[icon])
+                      const IconComponent = dynamic(
+                        () =>
+                          import("react-icons/fa").then(
+                            (mod: any) => mod[icon]
+                          ),
+                        { ssr: false }
                       );
                       return (
                         <ToggleButton
@@ -585,6 +591,9 @@ const IndexPage = () => {
               Documentation
             </a>
           </div>
+          {debugInfo.map((info) => (
+            <p>{info}</p>
+          ))}
         </div>
 
         <Modal show={modalName == "Alert"} onHide={handleCloseModal}>
