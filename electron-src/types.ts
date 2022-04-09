@@ -4,5 +4,6 @@ export type Config = {
 
 export type ApiResult = {
   success: boolean;
-  message: string;
+  message?: string;
+  data?: string;
 };
