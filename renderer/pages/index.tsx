@@ -103,6 +103,16 @@ const IndexPage = () => {
     return "danger";
   }, [agentStatus]);
 
+  const triggerIcons = useMemo(() => {
+    return triggers.map((trigger) => {
+      return trigger.icon
+        ? dynamic(() =>
+            import("react-icons/fa").then((mod: any) => mod[trigger.icon[0]])
+          )
+        : null;
+    });
+  }, [triggers]);
+
   const handleAddWebhook = async (data: WebhookProps) => {
     if (!data.title) {
       alert("The Webhook Title can't be empty.");
@@ -226,7 +236,7 @@ const IndexPage = () => {
     const dropbox_url = data.publicLink;
     if (!validateUrl(dropbox_url) || !dropbox_url.includes("dropbox.com")) {
       alert("The entered Dropbox URL it's invalid.");
-      return;
+      return false;
     }
 
     const json = JSON.stringify(data);
@@ -234,10 +244,11 @@ const IndexPage = () => {
     const res = await window.api.writeFile(path, json);
     if (res.status) {
       alert(res.stderr);
-      return;
+      return false;
     }
 
     setConfig({ ...config, ...data });
+    return true;
   };
 
   const handleAgentStart = async () => {
@@ -420,15 +431,16 @@ const IndexPage = () => {
           <h6 className="pb-2 text-muted">
             <small>Trigger a Webhook-based Applet:</small>
           </h6>
-          <div className="row px-3">
+          <div className="row px-2">
             {triggers.length > 0 ? (
               triggers.map((element, id) => {
-                const icon = element.icon ? element.icon[0] : undefined;
-                const IconComponent = icon
-                  ? dynamic(() =>
-                      import("react-icons/fa").then((mod: any) => mod[icon])
-                    )
-                  : null;
+                // const icon = element.icon ? element.icon[0] : undefined;
+                // const IconComponent = icon
+                //   ? dynamic(() =>
+                //       import("react-icons/fa").then((mod: any) => mod[icon])
+                //     )
+                //   : null;
+                const IconComponent = triggerIcons[id];
                 return (
                   <div
                     key={`webhook_${id}`}
@@ -601,26 +613,25 @@ const IndexPage = () => {
           )}
         </div>
 
-        <div id="footer" className="py-4 text-muted">
-          <div className="float-end">
-            <Button
-              variant="link"
-              className="text-muted fw-light"
-              style={{ textTransform: "none" }}
-              onClick={() => {
-                window.api.exec(`open ${url_wiki}`);
-              }}
-            >
-              <IconContext.Provider value={{ className: "me-1" }}>
-                <FaBook />
-              </IconContext.Provider>
-              Documentation
-            </Button>
-          </div>
-          {debugInfo.map((info, id) => (
-            <div key={id}>{info}</div>
-          ))}
-        </div>
+        <Stack direction="horizontal">
+          <Button
+            variant="link"
+            className="text-muted fw-light ms-auto p-0"
+            style={{ textTransform: "none" }}
+            onClick={() => {
+              window.api.exec(`open ${url_wiki}`);
+            }}
+          >
+            <IconContext.Provider value={{ className: "me-1" }}>
+              <FaBook />
+            </IconContext.Provider>
+            Documentation
+          </Button>
+        </Stack>
+
+        {debugInfo.map((info, id) => (
+          <div key={id}>{info}</div>
+        ))}
 
         <Modal show={modalName == "Alert"} onHide={handleCloseModal}>
           <Modal.Body>

@@ -6,7 +6,13 @@ import { spawnSync } from "child_process";
 import fetch from "node-fetch";
 
 // Packages
-import { BrowserWindow, app, ipcMain, IpcMainInvokeEvent } from "electron";
+import {
+  BrowserWindow,
+  app,
+  ipcMain,
+  IpcMainInvokeEvent,
+  Menu,
+} from "electron";
 import isDev from "electron-is-dev";
 import prepareNext from "electron-next";
 import { ApiResult } from "./types";
@@ -48,6 +54,85 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+const template = Menu.buildFromTemplate([
+  {
+    label: app.name,
+    submenu: [
+      { role: "about" },
+      { type: "separator" },
+      { role: "services" },
+      { type: "separator" },
+      { role: "hide" },
+      { role: "hideOthers" },
+      { role: "unhide" },
+      { type: "separator" },
+      { role: "quit" },
+    ],
+  },
+  // { role: 'editMenu' }
+  {
+    label: "Edit",
+    submenu: [
+      { role: "undo" },
+      { role: "redo" },
+      { type: "separator" },
+      { role: "cut" },
+      { role: "copy" },
+      { role: "paste" },
+      { role: "pasteAndMatchStyle" },
+      { role: "delete" },
+      { role: "selectAll" },
+      { type: "separator" },
+      {
+        label: "Speech",
+        submenu: [{ role: "startSpeaking" }, { role: "stopSpeaking" }],
+      },
+    ],
+  },
+  // { role: 'viewMenu' }
+  {
+    label: "View",
+    submenu: [
+      { role: "reload" },
+      { role: "forceReload" },
+      { type: "separator" },
+      { role: "resetZoom" },
+      { role: "zoomIn" },
+      { role: "zoomOut" },
+      { type: "separator" },
+      { role: "togglefullscreen" },
+    ],
+  },
+  // { role: 'windowMenu' }
+  {
+    label: "Window",
+    submenu: [
+      { role: "minimize" },
+      { role: "zoom" },
+      { type: "separator" },
+      { role: "front" },
+      { type: "separator" },
+      { role: "window" },
+    ],
+  },
+  {
+    role: "help",
+    submenu: [
+      {
+        label: "Learn More",
+        click: () => {
+          spawnSync(
+            "open https://github.com/miyabi-satoh/macos-ifttt-control/wiki",
+            { shell: true }
+          );
+        },
+      },
+    ],
+  },
+]);
+Menu.setApplicationMenu(template);
+
 // Prepare the renderer once the app is ready
 app.whenReady().then(async () => {
   await prepareNext("./renderer");

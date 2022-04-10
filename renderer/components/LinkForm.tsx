@@ -17,14 +17,22 @@ export function LinkForm(props: LinkFormProps) {
 
   const {
     control,
+    reset,
     handleSubmit,
     formState: { isDirty },
   } = useForm<LinkProps>({
     defaultValues,
   });
 
+  const onSubmitLocal = async (data: LinkProps) => {
+    const res = await onSubmit(data);
+    if (res) {
+      reset(data);
+    }
+  };
+
   return (
-    <Form onSubmit={handleSubmit(onSubmit)}>
+    <Form onSubmit={handleSubmit(onSubmitLocal)}>
       <Form.Group>
         <Form.Label>
           <h6 className="text-muted">

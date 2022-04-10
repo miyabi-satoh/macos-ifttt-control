@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   Modal,
   Form,
@@ -47,6 +47,18 @@ export function WebhookDialog(props: WebhookDialogProps) {
 
   const watchIcon = watch("icon");
 
+  const iconElements = useMemo(() => {
+    return icons.map((icon) => {
+      return {
+        name: icon,
+        component: dynamic(
+          () => import("react-icons/fa").then((mod: any) => mod[icon]),
+          { ssr: false }
+        ),
+      };
+    });
+  }, [icons]);
+
   useEffect(() => {
     reset();
   }, [show]);
@@ -82,37 +94,28 @@ export function WebhookDialog(props: WebhookDialogProps) {
                   {...field}
                   type="checkbox"
                   size="sm"
-                  className="flex-wrap overflow-auto w-100 h-px-100"
+                  className="flex-wrap overflow-auto w-100"
+                  style={{ height: "116px" }}
                   onChange={(val: string[]) => {
                     const iconKey = val.slice(-1)[0];
                     field.onChange([iconKey]);
                   }}
                 >
-                  {icons.map((icon) => {
-                    const IconComponent = dynamic(
-                      () =>
-                        import("react-icons/fa").then((mod: any) => mod[icon]),
-                      { ssr: false }
-                    );
+                  {iconElements.map((icon) => {
                     return (
                       <ToggleButton
                         className="me-2 ms-0 mb-2 flex-grow-0"
-                        key={icon}
-                        id={icon}
-                        value={icon}
+                        key={icon.name}
+                        id={icon.name}
+                        value={icon.name}
                         variant={
-                          !!watchIcon && watchIcon.includes(icon)
+                          !!watchIcon && watchIcon.includes(icon.name)
                             ? "outline-primary"
                             : "outline-secondary"
                         }
                       >
-                        {/* variant={
-                          watch("icon", []).includes(icon)
-                            ? "outline-primary"
-                            : "outline-secondary"
-                        } */}
                         <IconContext.Provider value={{ className: "fs-md" }}>
-                          <IconComponent />
+                          <icon.component />
                         </IconContext.Provider>
                       </ToggleButton>
                     );
