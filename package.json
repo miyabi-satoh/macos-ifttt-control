@@ -3,7 +3,7 @@
   "main": "main/index.js",
   "name": "com.amiiby.macosiftttcontrol",
   "productName": "macosIFTTTcontrol",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Cloud-Based IFTTT Task Automation Service for macOS.",
   "scripts": {
     "clean": "rimraf dist main renderer/out renderer/.next",
