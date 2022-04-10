@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { contextBridge, ipcRenderer } from "electron";
-import { Config } from "./types";
 
 contextBridge.exposeInMainWorld("api", {
-  getConfigPath: async (name: string) =>
-    await ipcRenderer.invoke("getConfigPath", name),
+  getHomePath: async (name: string) =>
+    await ipcRenderer.invoke("getHomePath", name),
   getResourcePath: async (name: string) =>
     await ipcRenderer.invoke("getResourcePath", name),
   getAppName: async () => await ipcRenderer.invoke("getAppName"),
@@ -14,6 +13,7 @@ contextBridge.exposeInMainWorld("api", {
     await ipcRenderer.invoke("writeFile", path, data),
   runWebhook: async (url: string) =>
     await ipcRenderer.invoke("runWebhook", url),
-  doInstall: async (config: Config) =>
-    await ipcRenderer.invoke("doInstall", config),
+  exec: async (cmd: string) => await ipcRenderer.invoke("exec", cmd),
+  // launchAgent: async (action: string) =>
+  //   await ipcRenderer.invoke("launchAgent", action),
 });

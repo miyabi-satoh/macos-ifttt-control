@@ -2,31 +2,25 @@
 import { join } from "path";
 import { format } from "url";
 import fs from "fs";
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import fetch from "node-fetch";
 
 // Packages
 import { BrowserWindow, app, ipcMain, IpcMainInvokeEvent } from "electron";
 import isDev from "electron-is-dev";
 import prepareNext from "electron-next";
-import { ApiResult, Config } from "./types";
+import { ApiResult } from "./types";
 
 const HomePath = app.getPath("home");
 const getResourcePath = (name: string) =>
   join(__dirname, "../resources", name).replace("app.asar/resources", "app");
 
-// const DesktopPath = app.getPath("desktop");
-const ConfigFilePath = join(HomePath, ".mic_config.json");
-// const iconsFilePath = join(__dirname, "../resources/json/icons.json");
-
 let mainWindow: BrowserWindow | null = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
+    width: isDev ? 1200 : 800,
     height: 600,
     webPreferences: {
-      // nodeIntegration: false,
-      // contextIsolation: false,
       preload: join(__dirname, "preload.js"),
     },
   });
@@ -55,11 +49,6 @@ function createWindow() {
   });
 }
 // Prepare the renderer once the app is ready
-// app.on("ready", async () => {
-//   await prepareNext("./renderer");
-
-//   createWindow();
-// });
 app.whenReady().then(async () => {
   await prepareNext("./renderer");
 
@@ -75,38 +64,43 @@ app.on("activate", () => {
   if (mainWindow === null) createWindow();
 });
 
-ipcMain.handle("getConfigPath", (_event: IpcMainInvokeEvent, name: string) => {
+ipcMain.handle("getHomePath", (_event: IpcMainInvokeEvent, name: string) => {
   return join(HomePath, name);
 });
 
 ipcMain.handle(
   "getResourcePath",
   (_event: IpcMainInvokeEvent, name: string) => {
-    // return join(ResourcePath, name);
     return getResourcePath(name);
   }
 );
 
 ipcMain.handle("getAppName", (_event: IpcMainInvokeEvent) => {
-  console.log("Called getAppName");
   return `${app.getName()} v${app.getVersion()}`;
 });
+
+const apiResultDefault: ApiResult = {
+  status: 1,
+  stderr: "",
+  stdout: "",
+} as const;
 
 ipcMain.handle(
   "writeFile",
   (_event: IpcMainInvokeEvent, path: string, data: string) => {
-    const res: ApiResult = {
-      success: false,
-      message: "",
-      data: "",
-    };
+    const res = { ...apiResultDefault };
 
     try {
       fs.writeFileSync(path, data);
-      res.success = true;
+      res.status = 0;
     } catch (e: unknown) {
       console.log(e);
-      res.message = e instanceof Error ? e.message : "Unknown error.";
+      if (e instanceof Error) {
+        res.error = e;
+        res.stderr = e.message;
+      } else {
+        res.stderr = "Unknown error.";
+      }
     }
 
     return res;
@@ -114,20 +108,21 @@ ipcMain.handle(
 );
 
 ipcMain.handle("readFile", (_event: IpcMainInvokeEvent, path: string) => {
-  const res: ApiResult = {
-    success: false,
-    message: "",
-    data: "",
-  };
+  const res = { ...apiResultDefault };
 
   try {
     if (fs.existsSync(path)) {
-      res.data = fs.readFileSync(path, "utf-8");
+      res.stdout = fs.readFileSync(path, "utf-8");
     }
-    res.success = true;
+    res.status = 0;
   } catch (e: unknown) {
     console.log(e);
-    res.message = e instanceof Error ? e.message : "Unknown error.";
+    if (e instanceof Error) {
+      res.error = e;
+      res.stderr = e.message;
+    } else {
+      res.stderr = "Unknown error.";
+    }
   }
 
   return res;
@@ -136,11 +131,7 @@ ipcMain.handle("readFile", (_event: IpcMainInvokeEvent, path: string) => {
 ipcMain.handle(
   "runWebhook",
   async (_event: IpcMainInvokeEvent, url: string) => {
-    const res: ApiResult = {
-      success: false,
-      message: "",
-      data: "",
-    };
+    const res = { ...apiResultDefault };
 
     try {
       const response = await fetch(url);
@@ -150,8 +141,8 @@ ipcMain.handle(
       //   body: JSON.stringify({}),
       // });
       if (response.ok) {
-        res.success = true;
-        res.message = await response.text();
+        res.status = 0;
+        res.stdout = await response.text();
       } else {
         const json = await response.json();
         const message = json.errors
@@ -165,75 +156,26 @@ ipcMain.handle(
       }
     } catch (e: unknown) {
       console.log(e);
-      res.message = e instanceof Error ? e.message : "Unknown error.";
+      if (e instanceof Error) {
+        res.error = e;
+        res.stderr = e.message;
+      } else {
+        res.stderr = "Unknown error.";
+      }
     }
 
     return res;
   }
 );
 
-ipcMain.handle("doInstall", (_event: IpcMainInvokeEvent, config: Config) => {
-  const res: ApiResult = {
-    success: false,
-    message: "",
-    data: "",
-  };
+ipcMain.handle("exec", (_event: IpcMainInvokeEvent, cmd: string) => {
+  const res = { ...apiResultDefault };
 
-  try {
-    // Validate Dropbox url
-    if (
-      !validateUrl(config.public_link) ||
-      !config.public_link.includes("dropbox.com")
-    ) {
-      throw new Error("The entered Dropbox URL it's invalid.");
-    }
-
-    // Delete hash file
-    // if (fs.existsSync(join(DesktopPath, config.hash))) {
-    //   fs.unlinkSync(join(DesktopPath, config.hash));
-    // }
-
-    // Save the config file
-    const json = JSON.stringify(config);
-    fs.writeFileSync(ConfigFilePath, json);
-
-    // Register the service daemon
-    // const daemon_file = join(
-    //   __dirname,
-    //   "cli/daemon/com.amiiby.macosiftttcontrol.plist"
-    // );
-    const daemon_file = getResourcePath(
-      "cli/daemon/com.amiiby.macosiftttcontrol.plist"
-    );
-    const library_path = join(
-      HomePath,
-      "Library/LaunchAgents/com.amiiby.macosiftttcontrol.plist"
-    );
-    execSync(`cp "${daemon_file}" "${library_path}"`);
-    execSync(`launchctl load ${library_path}`);
-
-    res.success = true;
-  } catch (e: unknown) {
-    console.log(e);
-    res.message = e instanceof Error ? e.message : "Unknown error.";
-  }
+  const spawn = spawnSync(cmd, { shell: true });
+  res.status = spawn.status;
+  res.stdout = spawn.stdout.toString();
+  res.stderr = spawn.stderr.toString();
+  res.error = spawn.error;
 
   return res;
 });
-
-/**
- * Validates a given URL
- */
-function validateUrl(url: string) {
-  var pattern = new RegExp(
-    "^(https?:\\/\\/)?" + // protocol
-      "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // domain name
-      "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR ip (v4) address
-      "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // port and path
-      "(\\?[;&a-z\\d%_.~+=-]*)?" + // query string
-      "(\\#[-a-z\\d_]*)?$",
-    "i"
-  ); // fragment locator
-
-  return !!pattern.test(url);
-}

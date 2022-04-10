@@ -2,9 +2,10 @@ from datetime import datetime
 import hashlib
 import re
 import subprocess
-import time
+# import time
 import os.path
 import json
+import sys
 from urllib.error import URLError
 import urllib.request
 import urllib.parse
@@ -19,10 +20,6 @@ m_cli = os.path.join(os.path.dirname(__file__),
                      *['vendors', 'm-cli-master', 'm'])
 
 
-def m_cli_exec(arg):
-    return subprocess.run(f'{m_cli} {arg}', shell=True, capture_output=True, text=True)
-
-
 def put_log(log):
     print(log)
     try:
@@ -30,6 +27,10 @@ def put_log(log):
             f.write(f'{datetime.now()} {log}\n')
     except Exception:
         pass
+
+
+def m_cli_exec(arg):
+    return subprocess.run(f'{m_cli} {arg}', shell=True, capture_output=True, text=True)
 
 
 def trigger_webhook(url, value1, value2, value3):
@@ -53,23 +54,23 @@ def trigger_webhook(url, value1, value2, value3):
                 f"The server couldn't fulfill the request.\nError code: {e.code}")
 
 
-try:
-    while True:
-        time.sleep(5)
+def main(argv):
+    # put_log('main start')
+    try:
+        # while True:
+        # time.sleep(5)
 
         # Get config file
         public_link = ''
         try:
             with open(config_file, 'r') as f:
                 config = json.load(f)
+                public_link = config['publicLink']
+                del config
         except FileNotFoundError as e:
-            print(f'Failed to read {config_file}')
-            print(e)
-            continue
+            put_log(f'Failed to read {config_file}')
+            put_log(e)
         else:
-            public_link = config['public_link']
-            del config
-
             public_link = public_link.replace('?dl=0', '')
             public_link = public_link.replace(
                 'https://www.dropbox.com/',
@@ -82,14 +83,16 @@ try:
             with open(events_file, 'r') as f:
                 events = json.load(f)
         except FileNotFoundError as e:
-            print(f'Failed to read {events_file}')
-            print(e)
+            put_log(f'Failed to read {events_file}')
+            put_log(e)
         else:
-            for key, value in events.items():
-                if not value['command'] in webhooks:
-                    webhooks[value['command']] = []
-                webhooks[value['command']].append(value)
+            for value in events:
+                if not value['trigger'] in webhooks:
+                    webhooks[value['trigger']] = []
+                webhooks[value['trigger']].append(value['url'])
             del events
+
+        # print(webhooks)
 
         # Trigger automatic webhooks
         control = {}
@@ -97,8 +100,8 @@ try:
             with open(triggers_file, 'r') as f:
                 control = json.load(f)
         except FileNotFoundError as e:
-            print(f'Failed to read {triggers_file}')
-            print(e)
+            put_log(f'Failed to read {triggers_file}')
+            put_log(e)
 
         if 'auto-battery' not in control:
             control['auto-battery'] = ''
@@ -107,12 +110,12 @@ try:
         if 'auto-bluetooth-on' not in control:
             control['auto-bluetooth-on'] = ''
 
-        for webhook_command, webhooks_url in webhooks:
-            if 'auto-' not in webhook_command:
+        for webhook_trigger, webhooks_url in webhooks.items():
+            if 'auto-' not in webhook_trigger:
                 continue
 
             # Execute auto-battery webhooks
-            if webhook_command == 'auto-battery':
+            if webhook_trigger == 'auto-battery':
                 status_response = m_cli_exec('battery status')
 
                 # Get battery percentage
@@ -122,28 +125,31 @@ try:
                         battery_percentage = int(m.group(1))
                     except ValueError as e:
                         put_log(e)
+                else:
+                    battery_percentage = None
 
                 # Check if the event can be triggered
-                battery_threshold = 20
-                if (battery_percentage <= battery_threshold) and (control[webhook_command] > battery_threshold):
-                    control[webhook_command] = battery_percentage - 1
+                if battery_percentage:
+                    battery_threshold = 20
+                    if (battery_percentage <= battery_threshold) and (control[webhook_trigger] > battery_threshold):
+                        control[webhook_trigger] = battery_percentage - 1
 
-                    # Trigger all the webhooks
-                    for trigger in webhooks_url:
-                        # Log webhook trigger
-                        log = f'Automatic Webhook Trigger: {trigger["url"]}\n - Action: {trigger["command"]}\n - Status: {battery_percentage}'
-                        put_log(log)
+                        # Trigger all the webhooks
+                        for trigger in webhooks_url:
+                            # Log webhook trigger
+                            log = f'Automatic Webhook Trigger: {trigger["url"]}\n - Action: {trigger["trigger"]}\n - Status: {battery_percentage}'
+                            put_log(log)
 
-                        # Trigger webhook
-                        trigger_webhook(
-                            trigger['url'], trigger['command'], battery_percentage, status_response.stdout)
-                elif (battery_percentage >= battery_threshold) and (control[webhook_command] < battery_threshold):
-                    # The battery is not more under the threshold
-                    control[webhook_command] = battery_percentage + 1
+                            # Trigger webhook
+                            trigger_webhook(
+                                trigger['url'], trigger['trigger'], battery_percentage, status_response.stdout)
+                    elif (battery_percentage >= battery_threshold) and (control[webhook_trigger] < battery_threshold):
+                        # The battery is not more under the threshold
+                        control[webhook_trigger] = battery_percentage + 1
 
             # Execute auto-bluetooth-on/off webhooks
-            if webhook_command == 'auto-bluetooth-on' or webhook_command == 'auto-bluetooth-off':
-                check_status = 'OFF' if 'off' in webhook_command else 'ON'
+            if webhook_trigger == 'auto-bluetooth-on' or webhook_trigger == 'auto-bluetooth-off':
+                check_status = 'OFF' if 'off' in webhook_trigger else 'ON'
 
                 status_response = m_cli_exec('bluetooth status')
 
@@ -155,21 +161,21 @@ try:
                     bluetooth_status = 'OFF'
 
                 # Check if the event can be triggered
-                if (bluetooth_status == check_status) and (not control[webhook_command]):
-                    control[webhook_command] = True
+                if (bluetooth_status == check_status) and (not control[webhook_trigger]):
+                    control[webhook_trigger] = True
 
                     # Trigger all the webhooks
                     for trigger in webhooks_url:
                         # Log webhook trigger
-                        log = f'Automatic Webhook Trigger: {trigger["url"]}\n - Action: {trigger["command"]}\n - Status: {bluetooth_status}'
+                        log = f'Automatic Webhook Trigger: {trigger["url"]}\n - Action: {trigger["trigger"]}\n - Status: {bluetooth_status}'
                         put_log(log)
 
                         # Trigger webhook
                         trigger_webhook(
-                            trigger['url'], trigger['command'], bluetooth_status, status_response)
-                elif (bluetooth_status != check_status) and (control[webhook_command]):
+                            trigger['url'], trigger['trigger'], bluetooth_status, status_response)
+                elif (bluetooth_status != check_status) and (control[webhook_trigger]):
                     # The bluetooth has been turned on/off again
-                    control[webhook_command] = False
+                    control[webhook_trigger] = False
 
         # Update control file
         with open(triggers_file, 'w') as f:
@@ -177,16 +183,17 @@ try:
 
         # Get commands history
         command_histories = []
-        try:
-            with urllib.request.urlopen(public_link) as f:
-                command_histories = f.read().decode('utf-8').strip().splitlines()
-        except URLError as e:
-            if hasattr(e, 'reason'):
-                print('We failed to reach a server.')
-                print('Reason: ', e.reason)
-            elif hasattr(e, 'code'):
-                print('The server couldn\'t fulfill the request.')
-                print('Error code: ', e.code)
+        if public_link:
+            try:
+                with urllib.request.urlopen(public_link) as f:
+                    command_histories = f.read().decode('utf-8').strip().splitlines()
+            except URLError as e:
+                if hasattr(e, 'reason'):
+                    print('We failed to reach a server.')
+                    print('Reason: ', e.reason)
+                elif hasattr(e, 'code'):
+                    print('The server couldn\'t fulfill the request.')
+                    print('Error code: ', e.code)
 
         if command_histories:
             # Get last command
@@ -195,8 +202,8 @@ try:
                 with open(last_command_file, 'r') as f:
                     last_command = f.read().strip()
             except FileNotFoundError as e:
-                print(f'Failed to read {last_command_file}')
-                print(e)
+                put_log(f'Failed to read {last_command_file}')
+                put_log(e)
 
             # Execute commands
             exec_command = command_histories[-1]
@@ -209,19 +216,18 @@ try:
 
             if (last_command != exec_hash) and (exec_hash not in blacklist):
                 cli_command = exec_command.split('|')
-                shell_command = f'm {cli_command[-1].strip()}'
+                arg = cli_command[-1].strip()
 
                 # Save last command
                 with open(last_command_file, 'w') as f:
                     f.write(exec_hash)
 
                 # Log execution
-                log = f'Executing: {shell_command}\n - Hash: {exec_hash}\n - Last Hash: {last_command}'
+                log = f'Executing: {arg}\n - Hash: {exec_hash}\n - Last Hash: {last_command}'
                 put_log(log)
 
                 # Execute command
-                res = subprocess.run(
-                    shell_command, shell=True, capture_output=True, text=True)
+                res = m_cli_exec(arg)
 
                 # Log response
                 if res.returncode != 0:
@@ -264,9 +270,17 @@ try:
                                 print('The server couldn\'t fulfill the request.')
                                 print('Error code: ', e.code)
 
-except KeyboardInterrupt:
-    print('finished.')
-except Exception as e:
-    print('Unexpected Error.')
-    print(type(e))
-    print(e)
+    except KeyboardInterrupt:
+        put_log('KeyboardInterrupt.')
+    except Exception as e:
+        put_log('Unexpected Error.')
+        put_log(type(e))
+        put_log(e)
+
+    # put_log('main finish')
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

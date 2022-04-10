@@ -4,13 +4,27 @@
 <dict>
     <key>Label</key>
     <string>com.amiiby.macosiftttcontrol</string>
-    <key>OnDemand</key>
-    <false/>
-    <key>RunAtLoad</key>
-    <true/>
+
     <key>ProgramArguments</key>
     <array>
-        <string>/Applications/macOSIFTTTControl.app/Contents/Resources/app/cli/daemon/macosiftttcontrol</string>
+        <string>%PYTHONPATH%</string>
+        <string>%PATH%/cli/service.py</string>
     </array>
+
+    <key>StartInterval</key>
+    <integer>5</integer>
+
+    <!-- <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/> -->
+
+    <key>StandardOutPath</key>
+    <string>%PATH%/cli/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>%PATH%/cli/stderr.log</string>
+
 </dict>
 </plist>

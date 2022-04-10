@@ -1,17 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Form,
-  Modal,
-  ToggleButton,
-  ToggleButtonGroup,
-} from "react-bootstrap";
+import { Button, ButtonGroup, Form, Modal, Stack } from "react-bootstrap";
 import Layout from "../components/Layout";
-import { Config } from "../interfaces";
 import {
   FaBook,
-  FaCheck,
   FaCheckCircle,
+  FaCircle,
+  FaExclamationTriangle,
   FaInfoCircle,
   FaPlus,
   FaTimes,
@@ -19,75 +13,18 @@ import {
 } from "react-icons/fa";
 import { IconContext } from "react-icons";
 import dynamic from "next/dynamic";
+import { WebhookDialog, WebhookProps } from "../components/WebhookDialog";
+import { EventDialog, EventProps } from "../components/EventDialog";
+import { LinkForm, LinkProps } from "../components/LinkForm";
 
+const url_wiki = "https://github.com/miyabi-satoh/macos-ifttt-control/wiki";
 const config_file = ".mic_config.json";
 const triggers_file = ".mic_triggers.json";
+const events_file = ".mic_events.json";
 const icons_file = "/json/icons.json";
-
-type OptionProps = {
-  value: string;
-  text?: string;
-};
-
-const colors = [
-  { value: "info", text: "Cyan" },
-  { value: "primary", text: "Blue" },
-  { value: "success", text: "Green" },
-  { value: "warning", text: "Yellow" },
-  { value: "danger", text: "Red" },
-  { value: "dark", text: "Gray" },
-] as const;
-
-const eventTriggers = [
-  { value: "", text: "Automatic Trigger" },
-  { value: "auto-battery", text: "Battery drops below 20%" },
-  { value: "auto-bluetooth-off", text: "Bluetooth is turned off" },
-  { value: "auto-bluetooth-on", text: "Bluetooth is turned on" },
-  { value: "" },
-  { value: "", text: "macOS IFTTT Events" },
-  { value: "automator" },
-  { value: "ifttt" },
-  { value: "ifttt", text: "macrodroid" },
-  { value: "ifttt", text: "webhook" },
-  { value: "bluetooth" },
-  { value: "dir" },
-  { value: "disk" },
-  { value: "display" },
-  { value: "dns" },
-  { value: "dock" },
-  { value: "finder" },
-  { value: "firewall" },
-  { value: "flightmode" },
-  { value: "gatekeeper" },
-  { value: "hostname" },
-  { value: "info" },
-  { value: "itunes" },
-  { value: "lock" },
-  { value: "ntp" },
-  { value: "printer" },
-  { value: "network" },
-  { value: "nosleep" },
-  { value: "notification" },
-  { value: "restart" },
-  { value: "safeboot" },
-  { value: "screensaver" },
-  { value: "service" },
-  { value: "shutdown" },
-  { value: "sleep" },
-  { value: "timezone" },
-  { value: "touchbar" },
-  { value: "trash" },
-  { value: "update" },
-  { value: "user" },
-  { value: "volume" },
-  { value: "vpn" },
-  { value: "wallpaper" },
-  { value: "wifi" },
-  { value: "download" },
-  { value: "notificationcenter" },
-  { value: "open" },
-  { value: "say" },
-] as const;
+const agent_file = "com.amiiby.macosiftttcontrol.plist";
+const agent_path = `cli/daemon/${agent_file}`;
+const library_path = `Library/LaunchAgents/${agent_file}`;
 
 /**
  * Validates a given URL
@@ -106,38 +43,35 @@ function validateUrl(url: string) {
   return !!pattern.test(url);
 }
 
-type WebhookProps = {
-  url: string;
-  icon: string[];
-  color: string;
-  title: string;
+type Config = {
+  publicLink: string;
 };
 
 type ModalType = "" | "Trigger" | "Event" | "Alert";
 type AlertType = "" | "success" | "danger" | "info";
+type AgentStatus = "" | "unloaded" | "running" | "error";
 
 const IndexPage = () => {
-  const webhookPropsDefault = useMemo(() => {
-    const data: WebhookProps = {
-      url: "",
-      icon: [],
-      color: "info",
-      title: "",
+  const configDefault: string = useMemo(() => {
+    const data: Config = {
+      publicLink: "",
     };
-    return data;
+    return JSON.stringify(data);
   }, []);
 
   const [config, setConfig] = useState<Config | undefined>(undefined);
   const [title, setTitle] = useState<string>("");
   const [triggers, setTriggers] = useState<WebhookProps[]>([]);
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState<EventProps[]>([]);
   const [icons, setIcons] = useState<string[]>([]);
   const [modalName, setModalName] = useState<ModalType>("");
   const [alertTitle, setAlertTitle] = useState<string>("");
   const [alertMessage, setAlertMessage] = useState<string[]>([]);
   const [alertType, setAlertType] = useState<AlertType>("");
-  const [webhookProps, setWebhookProps] =
-    useState<WebhookProps>(webhookPropsDefault);
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>("");
+  const [pythonPath, setPythonPath] = useState<string>("");
+  const [pythonV, setPythonV] = useState<string>("");
+  const [isBusy, setIsBusy] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const alertTextClass = useMemo(() => {
@@ -150,52 +84,47 @@ const IndexPage = () => {
   const alertIcon = useMemo(() => {
     if (alertType == "success") {
       return <FaCheckCircle />;
-    } else if (alertType == "danger") {
+    }
+    if (alertType == "danger") {
       return <FaTimesCircle />;
     }
     return <FaInfoCircle />;
   }, [alertType]);
 
-  const handleChangeUrl = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setWebhookProps({ ...webhookProps, url: ev.target.value });
-  };
+  const agentStatusColor = useMemo(() => {
+    if (agentStatus == "error") {
+      return "warning";
+    }
+    if (agentStatus == "running") {
+      return "success";
+    }
+    return "danger";
+  }, [agentStatus]);
 
-  const handleChangeIcon = (val: string[]) => {
-    const iconKey = val.slice(-1)[0];
-    setWebhookProps({ ...webhookProps, icon: [iconKey] });
-  };
-
-  const handleChangeColor = (ev: React.ChangeEvent<HTMLSelectElement>) => {
-    setWebhookProps({ ...webhookProps, color: ev.target.value });
-  };
-
-  const handleChangeTitle = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setWebhookProps({ ...webhookProps, title: ev.target.value });
-  };
-
-  const handleAddWebhook = async (ev: React.MouseEvent<HTMLButtonElement>) => {
-    if (!webhookProps.title) {
+  const handleAddWebhook = async (data: WebhookProps) => {
+    if (!data.title) {
       alert("The Webhook Title can't be empty.");
       return;
     }
 
-    if (!webhookProps.url) {
+    if (!data.url) {
       alert("The Webhook URL can't be empty.");
       return;
     }
 
-    if (!validateUrl(webhookProps.url)) {
+    if (!validateUrl(data.url)) {
       alert("The entered Webhook URL it's invalid.");
       return;
     }
 
-    const newTriggers = [...triggers, webhookProps];
+    const newTriggers = [...triggers, data];
     const json = JSON.stringify(newTriggers);
 
-    const path = await window.api.getConfigPath(triggers_file);
+    const path = await window.api.getHomePath(triggers_file);
     const res = await window.api.writeFile(path, json);
-    if (!res.success) {
-      alert(res.message);
+    if (res.status) {
+      alert(res.stderr);
+      return;
     }
 
     handleCloseModal();
@@ -207,10 +136,11 @@ const IndexPage = () => {
     newTriggers.splice(id, 1);
     const json = JSON.stringify(newTriggers);
 
-    const path = await window.api.getConfigPath(triggers_file);
+    const path = await window.api.getHomePath(triggers_file);
     const res = await window.api.writeFile(path, json);
-    if (!res.success) {
-      alert(res.message);
+    if (res.status) {
+      alert(res.stderr);
+      return;
     }
 
     setTriggers(newTriggers);
@@ -219,32 +149,191 @@ const IndexPage = () => {
   const handleRunWebhook = async (url: string) => {
     const res = await window.api.runWebhook(url);
     // console.log(res);
-    if (res.success) {
+    if (res.status === 0) {
       setAlertTitle("Webhook Triggered");
       setAlertMessage([
         "The Webhook has been triggered succesfully.",
-        res.message,
+        res.stdout,
       ]);
       setAlertType("success");
     } else {
       setAlertTitle("Webhook can't be Triggered");
       setAlertMessage([
         "The Webhook can't been triggered at the moment. Try again later.",
-        res.message,
+        res.stderr,
       ]);
       setAlertType("danger");
     }
     setModalName("Alert");
   };
 
-  const handleShowModal = (name: ModalType) => {
-    if (name == "Trigger") {
-      setWebhookProps({ ...webhookPropsDefault });
+  const handleAddEvent = async (data: EventProps) => {
+    if (data.trigger == "") {
+      alert("The Event Command can't be empty.");
+      return;
     }
+
+    if (data.url == "") {
+      alert("The Event URL can't be empty.");
+      return;
+    }
+
+    if (!validateUrl(data.url)) {
+      alert("The entered Event URL it's invalid.");
+      return;
+    }
+
+    const newEvents = [...events, data];
+    const json = JSON.stringify(newEvents);
+
+    const path = await window.api.getHomePath(events_file);
+    const res = await window.api.writeFile(path, json);
+    if (res.status) {
+      alert(res.stderr);
+      return;
+    }
+
+    handleCloseModal();
+    setEvents(newEvents);
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    const newEvents = [...events];
+    newEvents.splice(id, 1);
+    const json = JSON.stringify(newEvents);
+
+    const path = await window.api.getHomePath(events_file);
+    const res = await window.api.writeFile(path, json);
+    if (res.status) {
+      alert(res.stderr);
+      return;
+    }
+
+    setEvents(newEvents);
+  };
+
+  const handleShowModal = (name: ModalType) => {
     setModalName(name);
   };
+
   const handleCloseModal = () => {
     setModalName("");
+  };
+
+  const handleSaveLink = async (data: LinkProps) => {
+    const dropbox_url = data.publicLink;
+    if (!validateUrl(dropbox_url) || !dropbox_url.includes("dropbox.com")) {
+      alert("The entered Dropbox URL it's invalid.");
+      return;
+    }
+
+    const json = JSON.stringify(data);
+    const path = await window.api.getHomePath(config_file);
+    const res = await window.api.writeFile(path, json);
+    if (res.status) {
+      alert(res.stderr);
+      return;
+    }
+
+    setConfig({ ...config, ...data });
+  };
+
+  const handleAgentAction = () => {
+    setIsBusy(true);
+  };
+
+  const handleAgentStart = async () => {
+    if (agentStatus == "unloaded") {
+      // plistファイルを読み込む
+      let path = await window.api.getResourcePath(agent_path);
+      let res = await window.api.readFile(path);
+      if (res.status) {
+        alert(res.stderr);
+        return;
+      }
+      // 変数を置換して書き込む
+      const resourcePath = await window.api.getResourcePath("");
+      const plistData = res.stdout
+        .replaceAll("%PATH%", resourcePath)
+        .replaceAll("%PYTHONPATH%", pythonPath);
+      path = await window.api.getHomePath(library_path);
+
+      res = await window.api.writeFile(path, plistData);
+      if (res.status) {
+        alert(res.stderr);
+        return;
+      }
+
+      // launchctlを実行する
+      await window.api.exec(`xattr -c "${path}"`);
+      res = await window.api.exec(`launchctl load -w "${path}"`);
+      // console.log(res);
+    }
+  };
+
+  const handleAgentStop = async () => {
+    if (agentStatus == "running") {
+      const path = await window.api.getHomePath(library_path);
+      await window.api.exec(`xattr -c "${path}"`);
+      const res = await window.api.exec(`launchctl unload "${path}"`);
+      // console.log(res);
+    }
+  };
+
+  const watchAgent = async () => {
+    // pythonがインストールされているかチェック
+    let res = await window.api.exec("which python3");
+    if (res.status) {
+      res = await window.api.exec("which python");
+      if (res.status) {
+        setAgentStatus("error");
+        return;
+      }
+    }
+    const python = res.stdout.trim();
+    res = await window.api.exec(`${python} -V`);
+    if (res.status) {
+      setAgentStatus("error");
+      return;
+    }
+
+    // Check python 3.7 or later
+    const pyVersion = res.stdout.trim();
+    const pyVersionNumbers = pyVersion
+      .replace("Python ", "")
+      .split(".")
+      .map((s) => Number(s));
+    if (pyVersionNumbers[0] < 3) {
+      setAgentStatus("error");
+      return;
+    }
+    if (pyVersionNumbers[0] == 3 && pyVersionNumbers[1] < 7) {
+      setAgentStatus("error");
+      return;
+    }
+
+    setPythonV(pyVersion);
+    setPythonPath(python);
+
+    // Agentがloadされているかチェック
+    // grepはヒットしないと失敗扱いになるので、行カウントする
+    res = await window.api.exec(
+      `launchctl list | grep macosiftttcontrol | wc -l`
+    );
+    if (res.status) {
+      console.log(res);
+      return;
+    }
+
+    const wcRes = res.stdout.trim();
+    if (wcRes == "1") {
+      setAgentStatus("running");
+    } else {
+      setAgentStatus("unloaded");
+    }
+
+    // DEBUG
+    // setAgentStatus("error");
   };
 
   useEffect(() => {
@@ -252,27 +341,27 @@ const IndexPage = () => {
       // Get window title
       setTitle(await window.api.getAppName());
 
-      // Get config
-      {
-        const path = await window.api.getConfigPath(config_file);
-        const res = await window.api.readFile(path);
-        const json = JSON.parse(res.data || "{}");
-        setConfig(json);
-      }
-
       // Get webhook triggers
       {
-        const path = await window.api.getConfigPath(triggers_file);
+        const path = await window.api.getHomePath(triggers_file);
         const res = await window.api.readFile(path);
-        const json = JSON.parse(res.data || "[]");
+        const json = JSON.parse(res.stdout || "[]");
         setTriggers(json);
+      }
+
+      // Get webhook events
+      {
+        const path = await window.api.getHomePath(events_file);
+        const res = await window.api.readFile(path);
+        const json = JSON.parse(res.stdout || "[]");
+        setEvents(json);
       }
 
       // Get icons
       {
         const path = await window.api.getResourcePath(icons_file);
         const res = await window.api.readFile(path);
-        const json = JSON.parse(res.data || "[]");
+        const json = JSON.parse(res.stdout || "[]");
         const reactIcons = json.map((data: string[]) => {
           const name = data[2] || data[0];
           return (
@@ -286,15 +375,50 @@ const IndexPage = () => {
               )
           );
         });
-        // console.log(reactIcons);
-        // await window.api.writeFile(path, JSON.stringify(reactIcons));
-        // setDebugInfo([path]);
         setIcons(reactIcons);
       }
       // TODO: Check Update
+
+      // Get config (and go rendering)
+      {
+        const path = await window.api.getHomePath(config_file);
+        const res = await window.api.readFile(path);
+        const json = JSON.parse(res.stdout || configDefault);
+        setConfig(json);
+      }
     };
+
+    // Watch agent status
+    watchAgent();
+    const timer = setInterval(() => {
+      if (!isBusy) {
+        watchAgent();
+      }
+    }, 5000);
+
     f();
+
+    // clean up
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
+
+  useEffect(() => {
+    const f = async () => {
+      if (isBusy) {
+        if (agentStatus == "running") {
+          await handleAgentStop();
+        } else if (agentStatus == "unloaded") {
+          await handleAgentStart();
+        }
+        await watchAgent();
+        setIsBusy(false);
+      }
+    };
+
+    f();
+  }, [isBusy]);
 
   if (config === undefined) {
     return null;
@@ -365,30 +489,31 @@ const IndexPage = () => {
           <div className="row px-3">
             {events.length > 0 ? (
               events.map((element, id) => {
-                const color = element.command.includes("auto-")
+                const color = element.trigger.includes("auto-")
                   ? "success"
                   : "info";
 
                 return (
                   <div key={`event_${id}`} className="col-12 pb-2">
-                    <div className="btn-group w-100" role="group">
+                    <ButtonGroup>
                       <Button
                         variant="light"
-                        className={`btn-block w-75 text-start border border-${color} copy-clipboard`}
+                        className={`w-75 text-start border-${color} text-break`}
+                        style={{ textTransform: "none" }}
                       >
                         {element.url}
                       </Button>
-                      <Button variant={color} className={`text-center w-25`}>
-                        {element.command}
+                      <Button variant={color} className={`w-25`} disabled>
+                        {element.trigger}
                       </Button>
                       <Button
                         variant="secondary"
-                        className="text-end delete-event"
-                        data-event-id={id}
+                        className="delete-event"
+                        onClick={() => handleDeleteEvent(id)}
                       >
                         <FaTimes />
                       </Button>
-                    </div>
+                    </ButtonGroup>
                   </div>
                 );
               })
@@ -401,7 +526,7 @@ const IndexPage = () => {
           </div>
         </div>
 
-        <div id="options" className="pt-4">
+        <div className="pt-4">
           <h6 className="pb-2 text-muted">
             <small>Options:</small>
           </h6>
@@ -416,96 +541,12 @@ const IndexPage = () => {
                 <FaPlus /> Add Webhook Trigger
               </Button>
             </div>
-            <Modal show={modalName == "Trigger"} onHide={handleCloseModal}>
-              <Modal.Header closeButton>
-                <Modal.Title>Add Webhook</Modal.Title>
-              </Modal.Header>
-              <Modal.Body>
-                <Form.Group>
-                  <Form.Label>Webhook URL</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Webhook URL"
-                    onChange={handleChangeUrl}
-                    value={webhookProps.url}
-                  />
-                </Form.Group>
-                <Form.Group>
-                  <Form.Label>Webhook Icon</Form.Label>
-                  <ToggleButtonGroup
-                    type="checkbox"
-                    name="icons"
-                    size="sm"
-                    className="flex-wrap overflow-auto w-100 h-px-100"
-                    value={webhookProps.icon}
-                    onChange={handleChangeIcon}
-                  >
-                    {icons.map((icon) => {
-                      const IconComponent = dynamic(
-                        () =>
-                          import("react-icons/fa").then(
-                            (mod: any) => mod[icon]
-                          ),
-                        { ssr: false }
-                      );
-                      return (
-                        <ToggleButton
-                          className="me-2 ms-0 mb-2 flex-grow-0"
-                          key={icon}
-                          id={icon}
-                          value={icon}
-                          variant={
-                            webhookProps.icon.includes(icon)
-                              ? "outline-primary"
-                              : "outline-secondary"
-                          }
-                        >
-                          <IconContext.Provider value={{ className: "fs-md" }}>
-                            <IconComponent />
-                          </IconContext.Provider>
-                        </ToggleButton>
-                      );
-                    })}
-                  </ToggleButtonGroup>
-                </Form.Group>
-                <Form.Group>
-                  <Form.Label>Webhook Color</Form.Label>
-                  <Form.Select
-                    onChange={handleChangeColor}
-                    value={webhookProps.color}
-                  >
-                    {colors.map((color: OptionProps) => {
-                      return (
-                        <option key={color.value} value={color.value}>
-                          {color.text}
-                        </option>
-                      );
-                    })}
-                  </Form.Select>
-                </Form.Group>
-                <Form.Group>
-                  <Form.Label>Webhook Title</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Webhook Title"
-                    onChange={handleChangeTitle}
-                    value={webhookProps.title}
-                  />
-                </Form.Group>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCloseModal}
-                >
-                  <FaTimes /> Close
-                </Button>
-                <Button variant="info" size="sm" onClick={handleAddWebhook}>
-                  <FaCheck /> Save changes
-                </Button>
-              </Modal.Footer>
-            </Modal>
+            <WebhookDialog
+              show={modalName == "Trigger"}
+              onHide={handleCloseModal}
+              icons={icons}
+              onSubmit={handleAddWebhook}
+            />
 
             <div className="col-12 col-sm-6 pb-1 d-grid">
               <Button
@@ -517,82 +558,78 @@ const IndexPage = () => {
                 <FaPlus /> Add Webhook Event
               </Button>
             </div>
-
-            <Modal show={modalName == "Event"} onHide={handleCloseModal}>
-              <Modal.Header closeButton>
-                <Modal.Title>Add Event</Modal.Title>
-              </Modal.Header>
-              <Modal.Body>
-                <Form.Group>
-                  <Form.Label>Event URL</Form.Label>
-                  <Form.Control type="text" placeholder="Event URL" />
-                </Form.Group>
-                <Form.Group>
-                  <Form.Label>Trigger</Form.Label>
-                  <Form.Select>
-                    {eventTriggers.map((element: OptionProps, id) => {
-                      if (element.value) {
-                        return (
-                          <option key={`event${id}`} value={element.value}>
-                            {element.text || element.value}
-                          </option>
-                        );
-                      } else {
-                        return (
-                          <option key={`event${id}`} disabled>
-                            {element.text || element.value}
-                          </option>
-                        );
-                      }
-                    })}
-                  </Form.Select>
-                </Form.Group>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCloseModal}
-                >
-                  <FaTimes /> Close
-                </Button>
-                <Button variant="info" size="sm" onClick={handleCloseModal}>
-                  <FaCheck /> Save changes
-                </Button>
-              </Modal.Footer>
-            </Modal>
+            <EventDialog
+              onSubmit={handleAddEvent}
+              onHide={handleCloseModal}
+              show={modalName == "Event"}
+            />
           </div>
         </div>
+
+        <div className="pt-4">
+          <LinkForm
+            defaultValues={{ publicLink: config.publicLink }}
+            onSubmit={handleSaveLink}
+          />
+          <Form.Text muted>
+            {!config.publicLink && (
+              <>Once you set the link, you can take action via the file.</>
+            )}
+            {config.publicLink && agentStatus == "error" && (
+              <>
+                <IconContext.Provider
+                  value={{ className: `text-warning me-1` }}
+                >
+                  <FaExclamationTriangle />
+                </IconContext.Provider>
+                Python 3.7 or later is not found. It is required to run the
+                Agent.
+              </>
+            )}
+            {config.publicLink && agentStatus != "error" && (
+              <>
+                The Agent uses {pythonPath} ({pythonV}) .
+              </>
+            )}
+          </Form.Text>
+          {agentStatus != "error" && config.publicLink && (
+            <Stack direction="horizontal" gap={1} className="pt-2">
+              <IconContext.Provider
+                value={{ className: `text-${agentStatusColor}` }}
+              >
+                <FaCircle />
+              </IconContext.Provider>
+              <div>Agent is {agentStatus}.</div>
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={isBusy}
+                onClick={isBusy ? null : handleAgentAction}
+              >
+                {agentStatus == "running" ? "Stop" : "Start"}
+              </Button>
+            </Stack>
+          )}
+        </div>
+
         <div id="footer" className="py-4 text-muted">
-          <div
-            id="mac_hash_tooltip"
-            className="tooltip bs-tooltip-top"
-            onClick={() => "$(this).fadeOut();"}
-            role="tooltip"
-            style={{ opacity: 1, display: "none" }}
-          >
-            <div className="arrow ml-2"></div>
-            <div className="tooltip-inner bg-secondary shadow fs-sm">
-              <FaCheck /> Copied to Clipboard!
-            </div>
-          </div>
-          <small>
-            Mac Hash: <i id="mac_hash"></i>
-          </small>
           <div className="float-end">
-            <a
-              href="https://github.com/abdyfranco/macos-ifttt-control/wiki"
-              target="_blank"
-              className="text-muted fs-sm external-link"
+            <Button
+              variant="link"
+              className="text-muted fw-light"
+              style={{ textTransform: "none" }}
+              onClick={() => {
+                window.api.exec(`open ${url_wiki}`);
+              }}
             >
-              <IconContext.Provider value={{ className: "mr-1" }}>
+              <IconContext.Provider value={{ className: "me-1" }}>
                 <FaBook />
               </IconContext.Provider>
               Documentation
-            </a>
+            </Button>
           </div>
-          {debugInfo.map((info) => (
-            <p>{info}</p>
+          {debugInfo.map((info, id) => (
+            <div key={id}>{info}</div>
           ))}
         </div>
 

@@ -5,7 +5,7 @@
 // import User from 'path/to/interfaces';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { IpcRenderer } from "electron";
-import { ApiResult, Config } from "../../electron-src/types";
+import { ApiResult } from "../../electron-src/types";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -16,20 +16,21 @@ declare global {
   }
   interface Window {
     api: {
-      getConfigPath: (name: string) => Promise<string>;
+      getHomePath: (name: string) => Promise<string>;
       getResourcePath: (name: string) => Promise<string>;
       getAppName: () => Promise<string>;
       readFile: (path: string) => Promise<ApiResult>;
       writeFile: (path: string, data: string) => Promise<ApiResult>;
       runWebhook: (url: string) => Promise<ApiResult>;
-      doInstall: (config: Config) => Promise<ApiResult>;
+      exec: (cmd: string) => Promise<ApiResult>;
+      // launchAgent: (action: string) => Promise<ApiResult>;
     };
   }
 }
 
-export type User = {
-  id: number;
-  name: string;
+export type OptionProps = {
+  value: string;
+  text?: string;
 };
 
 export * from "../../electron-src/types";

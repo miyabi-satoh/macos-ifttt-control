@@ -24,6 +24,7 @@
     "react": "^17.0.2",
     "react-bootstrap": "^2.2.3",
     "react-dom": "^17.0.2",
+    "react-hook-form": "^7.29.0",
     "react-icons": "^4.3.1"
   },
   "devDependencies": {
@@ -47,7 +48,15 @@
     "extraResources": [
       {
         "from": "resources/cli",
-        "to": "app/cli"
+        "to": "app/cli",
+        "filter": [
+          "**/*",
+          "!*.log",
+          "!install_dependencies",
+          "!__pycache__",
+          "!plugins",
+          "!last_command"
+        ]
       },
       {
         "from": "resources/json",
