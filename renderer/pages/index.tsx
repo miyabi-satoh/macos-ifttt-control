@@ -18,13 +18,14 @@ import { EventDialog, EventProps } from "../components/EventDialog";
 import { LinkForm, LinkProps } from "../components/LinkForm";
 
 const url_wiki = "https://github.com/miyabi-satoh/macos-ifttt-control/wiki";
-const config_file = ".mic_config.json";
-const triggers_file = ".mic_triggers.json";
-const events_file = ".mic_events.json";
-const icons_file = "/json/icons.json";
-const agent_file = "com.amiiby.macosiftttcontrol.plist";
-const agent_path = `cli/daemon/${agent_file}`;
-const library_path = `Library/LaunchAgents/${agent_file}`;
+const mic_config_json = ".mic_config.json";
+const mic_triggers_json = ".mic_triggers.json";
+const mic_events_json = ".mic_events.json";
+const icons_json = "/json/icons.json";
+const agent_name = "com.amiiby.macosiftttcontrol-agent";
+const plist_file = `${agent_name}.plist`;
+const plist_path = `cli/${plist_file}`;
+const launchagents_path = `Library/LaunchAgents/${plist_file}`;
 
 /**
  * Validates a given URL
@@ -72,6 +73,7 @@ const IndexPage = () => {
   const [pythonPath, setPythonPath] = useState<string>("");
   const [pythonV, setPythonV] = useState<string>("");
   const [isBusy, setIsBusy] = useState<boolean>(false);
+  const [timeNow, setTimeNow] = useState<number>(Date.now());
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const alertTextClass = useMemo(() => {
@@ -120,7 +122,7 @@ const IndexPage = () => {
     const newTriggers = [...triggers, data];
     const json = JSON.stringify(newTriggers);
 
-    const path = await window.api.getHomePath(triggers_file);
+    const path = await window.api.getHomePath(mic_triggers_json);
     const res = await window.api.writeFile(path, json);
     if (res.status) {
       alert(res.stderr);
@@ -136,7 +138,7 @@ const IndexPage = () => {
     newTriggers.splice(id, 1);
     const json = JSON.stringify(newTriggers);
 
-    const path = await window.api.getHomePath(triggers_file);
+    const path = await window.api.getHomePath(mic_triggers_json);
     const res = await window.api.writeFile(path, json);
     if (res.status) {
       alert(res.stderr);
@@ -186,7 +188,7 @@ const IndexPage = () => {
     const newEvents = [...events, data];
     const json = JSON.stringify(newEvents);
 
-    const path = await window.api.getHomePath(events_file);
+    const path = await window.api.getHomePath(mic_events_json);
     const res = await window.api.writeFile(path, json);
     if (res.status) {
       alert(res.stderr);
@@ -202,7 +204,7 @@ const IndexPage = () => {
     newEvents.splice(id, 1);
     const json = JSON.stringify(newEvents);
 
-    const path = await window.api.getHomePath(events_file);
+    const path = await window.api.getHomePath(mic_events_json);
     const res = await window.api.writeFile(path, json);
     if (res.status) {
       alert(res.stderr);
@@ -228,7 +230,7 @@ const IndexPage = () => {
     }
 
     const json = JSON.stringify(data);
-    const path = await window.api.getHomePath(config_file);
+    const path = await window.api.getHomePath(mic_config_json);
     const res = await window.api.writeFile(path, json);
     if (res.status) {
       alert(res.stderr);
@@ -238,49 +240,53 @@ const IndexPage = () => {
     setConfig({ ...config, ...data });
   };
 
-  const handleAgentAction = () => {
-    setIsBusy(true);
-  };
-
   const handleAgentStart = async () => {
-    if (agentStatus == "unloaded") {
-      // plistファイルを読み込む
-      let path = await window.api.getResourcePath(agent_path);
-      let res = await window.api.readFile(path);
-      if (res.status) {
-        alert(res.stderr);
-        return;
-      }
-      // 変数を置換して書き込む
-      const resourcePath = await window.api.getResourcePath("");
-      const plistData = res.stdout
-        .replaceAll("%PATH%", resourcePath)
-        .replaceAll("%PYTHONPATH%", pythonPath);
-      path = await window.api.getHomePath(library_path);
-
-      res = await window.api.writeFile(path, plistData);
-      if (res.status) {
-        alert(res.stderr);
-        return;
-      }
-
-      // launchctlを実行する
-      await window.api.exec(`xattr -c "${path}"`);
-      res = await window.api.exec(`launchctl load -w "${path}"`);
-      // console.log(res);
+    // plistファイルを読み込む
+    let path = await window.api.getResourcePath(plist_path);
+    let res = await window.api.readFile(path);
+    if (res.status) {
+      alert(res.stderr);
+      return;
     }
+    // 変数を置換して書き込む
+    const resourcePath = await window.api.getResourcePath("");
+    const plistData = res.stdout
+      .replaceAll("%PATH%", resourcePath)
+      .replaceAll("%PYTHONPATH%", pythonPath);
+    path = await window.api.getHomePath(launchagents_path);
+
+    res = await window.api.writeFile(path, plistData);
+    if (res.status) {
+      alert(res.stderr);
+      return;
+    }
+
+    // launchctlを実行する
+    await window.api.exec(`xattr -c "${path}"`);
+    res = await window.api.exec(`launchctl load -w "${path}"`);
+    // console.log(res);
   };
 
   const handleAgentStop = async () => {
-    if (agentStatus == "running") {
-      const path = await window.api.getHomePath(library_path);
-      await window.api.exec(`xattr -c "${path}"`);
-      const res = await window.api.exec(`launchctl unload "${path}"`);
-      // console.log(res);
+    const path = await window.api.getHomePath(launchagents_path);
+    await window.api.exec(`xattr -c "${path}"`);
+    const res = await window.api.exec(`launchctl unload "${path}"`);
+    // console.log(res);
+  };
+
+  const handleAgentAction = async () => {
+    setIsBusy(true);
+    if (agentStatus == "unloaded") {
+      await handleAgentStart();
+    } else if (agentStatus == "running") {
+      await handleAgentStop();
     }
+    await watchAgent();
+    setIsBusy(false);
   };
 
   const watchAgent = async () => {
+    // console.log("watchAgent", debugInfo);
     // pythonがインストールされているかチェック
     let res = await window.api.exec("which python3");
     if (res.status) {
@@ -316,24 +322,20 @@ const IndexPage = () => {
     setPythonPath(python);
 
     // Agentがloadされているかチェック
-    // grepはヒットしないと失敗扱いになるので、行カウントする
-    res = await window.api.exec(
-      `launchctl list | grep macosiftttcontrol | wc -l`
-    );
+    res = await window.api.exec(`launchctl list | grep ${agent_name}`);
+
+    // const newInfo = [
+    //   `status = ${res.status}`,
+    //   `stdout = ${res.stdout}`,
+    //   `stderr = ${res.stderr}`,
+    // ];
+    // setDebugInfo(debugInfo.concat(newInfo));
+
     if (res.status) {
-      console.log(res);
-      return;
-    }
-
-    const wcRes = res.stdout.trim();
-    if (wcRes == "1") {
-      setAgentStatus("running");
-    } else {
       setAgentStatus("unloaded");
+    } else {
+      setAgentStatus("running");
     }
-
-    // DEBUG
-    // setAgentStatus("error");
   };
 
   useEffect(() => {
@@ -343,7 +345,7 @@ const IndexPage = () => {
 
       // Get webhook triggers
       {
-        const path = await window.api.getHomePath(triggers_file);
+        const path = await window.api.getHomePath(mic_triggers_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
         setTriggers(json);
@@ -351,7 +353,7 @@ const IndexPage = () => {
 
       // Get webhook events
       {
-        const path = await window.api.getHomePath(events_file);
+        const path = await window.api.getHomePath(mic_events_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
         setEvents(json);
@@ -359,7 +361,7 @@ const IndexPage = () => {
 
       // Get icons
       {
-        const path = await window.api.getResourcePath(icons_file);
+        const path = await window.api.getResourcePath(icons_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
         const reactIcons = json.map((data: string[]) => {
@@ -379,46 +381,33 @@ const IndexPage = () => {
       }
       // TODO: Check Update
 
+      // Watch agent
+      await watchAgent();
+
       // Get config (and go rendering)
       {
-        const path = await window.api.getHomePath(config_file);
+        const path = await window.api.getHomePath(mic_config_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || configDefault);
         setConfig(json);
       }
     };
 
-    // Watch agent status
-    watchAgent();
-    const timer = setInterval(() => {
-      if (!isBusy) {
-        watchAgent();
-      }
-    }, 5000);
-
     f();
-
-    // clean up
-    return () => {
-      clearInterval(timer);
-    };
   }, []);
 
   useEffect(() => {
-    const f = async () => {
-      if (isBusy) {
-        if (agentStatus == "running") {
-          await handleAgentStop();
-        } else if (agentStatus == "unloaded") {
-          await handleAgentStart();
-        }
+    const timeoutId = setTimeout(async () => {
+      if (!isBusy) {
         await watchAgent();
-        setIsBusy(false);
       }
-    };
+      setTimeNow(Date.now());
+    }, 5000);
 
-    f();
-  }, [isBusy]);
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [timeNow]);
 
   if (config === undefined) {
     return null;
