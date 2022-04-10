@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.amiiby.macosiftttcontrol-agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>%PYTHONPATH%</string>
+        <string>%PATH%/cli/service.py</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>5</integer>
+
+    <key>ThrottleInterval</key>
+    <integer>2</integer>
+
+    <key>StandardOutPath</key>
+    <string>%PATH%/cli/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>%PATH%/cli/stderr.log</string>
+</dict>
+</plist>

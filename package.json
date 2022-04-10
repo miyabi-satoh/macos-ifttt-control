@@ -1,0 +1,83 @@
+{
+  "private": true,
+  "main": "main/index.js",
+  "name": "com.amiiby.macosiftttcontrol",
+  "productName": "macosIFTTTcontrol",
+  "version": "1.0.0",
+  "description": "Cloud-Based IFTTT Task Automation Service for macOS.",
+  "scripts": {
+    "clean": "rimraf dist main renderer/out renderer/.next",
+    "dev": "npm run build-electron && electron .",
+    "build-renderer": "next build renderer && next export renderer",
+    "build-electron": "tsc -p electron-src",
+    "build": "npm run build-renderer && npm run build-electron",
+    "install-dependencies": "resources/cli/install_dependencies",
+    "pack-app": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "type-check": "tsc"
+  },
+  "dependencies": {
+    "bootstrap": "^5.1.3",
+    "electron-is-dev": "^1.1.0",
+    "electron-next": "^3.1.5",
+    "node-fetch": "^2.6.7",
+    "react": "^17.0.2",
+    "react-bootstrap": "^2.2.3",
+    "react-dom": "^17.0.2",
+    "react-hook-form": "^7.29.0",
+    "react-icons": "^4.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.6",
+    "@types/node-fetch": "^2.6.1",
+    "@types/react": "^16.9.9",
+    "@types/react-dom": "^16.9.9",
+    "electron": "^13",
+    "electron-builder": "^23.0.3",
+    "next": "latest",
+    "rimraf": "^3.0.0",
+    "typescript": "^4.0.5"
+  },
+  "build": {
+    "appId": "com.amiiby.macosiftttcontrol",
+    "asar": true,
+    "files": [
+      "main",
+      "renderer/out"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/cli",
+        "to": "app/cli",
+        "filter": [
+          "**/*",
+          "!*.log",
+          "!install_dependencies",
+          "!__pycache__",
+          "!plugins",
+          "!last_command"
+        ]
+      },
+      {
+        "from": "resources/json",
+        "to": "app/json"
+      },
+      {
+        "from": "resources/icon.png",
+        "to": "app/icon.png"
+      }
+    ],
+    "mac": {
+      "icon": "resources/electron.icns"
+    }
+  },
+  "repository": "https://github.com/miyabi-satoh/macos-ifttt-control",
+  "keywords": [
+    "macos",
+    "webhook",
+    "ifttt",
+    "automation"
+  ],
+  "author": "miyabi-satoh",
+  "license": "MIT"
+}
