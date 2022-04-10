@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.amiiby.macosiftttcontrol</string>
+    <string>com.amiiby.macosiftttcontrol-agent</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -14,17 +14,13 @@
     <key>StartInterval</key>
     <integer>5</integer>
 
-    <!-- <key>RunAtLoad</key>
-    <true/>
-
-    <key>KeepAlive</key>
-    <true/> -->
+    <key>ThrottleInterval</key>
+    <integer>2</integer>
 
     <key>StandardOutPath</key>
     <string>%PATH%/cli/stdout.log</string>
 
     <key>StandardErrorPath</key>
     <string>%PATH%/cli/stderr.log</string>
-
 </dict>
 </plist>
