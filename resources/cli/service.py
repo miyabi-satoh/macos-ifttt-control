@@ -241,6 +241,7 @@ def main(argv):
 
                 if timediff and timediff.seconds > 60 * 10:
                     log = f'{exec_hash} Skip: More than 10 minutes ago. Command is skipped.'
+                    put_log(log)
                     return 0
 
                 # Execute command
