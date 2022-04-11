@@ -359,6 +359,10 @@ const IndexPage = () => {
         const path = await window.api.getHomePath(mic_triggers_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
+        // Save empty webhook triggers
+        if (!res.status && !res.stdout) {
+          await window.api.writeFile(path, JSON.stringify(json));
+        }
         setTriggers(json);
       }
 
@@ -367,6 +371,10 @@ const IndexPage = () => {
         const path = await window.api.getHomePath(mic_events_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
+        // Save empty webhook events
+        if (!res.status && !res.stdout) {
+          await window.api.writeFile(path, JSON.stringify(json));
+        }
         setEvents(json);
       }
 
