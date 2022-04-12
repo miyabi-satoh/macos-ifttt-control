@@ -47,6 +47,7 @@ function validateUrl(url: string) {
 type Config = {
   publicLink: string;
 };
+const configDefault = JSON.stringify({ publicLink: "" });
 
 type ModalType = "" | "Trigger" | "Event" | "Alert";
 type AlertType = "" | "success" | "danger" | "info";
@@ -54,15 +55,7 @@ type AgentStatus = "" | "unloaded" | "running" | "error";
 type LogType = "stdout" | "stderr";
 
 const IndexPage = () => {
-  const configDefault: string = useMemo(() => {
-    const data: Config = {
-      publicLink: "",
-    };
-    return JSON.stringify(data);
-  }, []);
-
   const [config, setConfig] = useState<Config | undefined>(undefined);
-  const [title, setTitle] = useState<string>("");
   const [triggers, setTriggers] = useState<WebhookProps[]>([]);
   const [events, setEvents] = useState<EventProps[]>([]);
   const [icons, setIcons] = useState<string[]>([]);
@@ -298,6 +291,7 @@ const IndexPage = () => {
 
   const handleViewLog = (type: LogType) => {
     console.log(type);
+    window.location.href = `/view/${type}`;
   };
 
   const watchAgent = async () => {
@@ -355,9 +349,6 @@ const IndexPage = () => {
 
   useEffect(() => {
     const f = async () => {
-      // Get window title
-      setTitle(await window.api.getAppName());
-
       // Get webhook triggers
       {
         const path = await window.api.getHomePath(mic_triggers_json);
@@ -434,7 +425,7 @@ const IndexPage = () => {
   }
 
   return (
-    <Layout title={title}>
+    <Layout>
       <div className="p-4">
         <div id="webhooks">
           <h6 className="pb-2 text-muted">
@@ -443,12 +434,6 @@ const IndexPage = () => {
           <div className="row px-2">
             {triggers.length > 0 ? (
               triggers.map((element, id) => {
-                // const icon = element.icon ? element.icon[0] : undefined;
-                // const IconComponent = icon
-                //   ? dynamic(() =>
-                //       import("react-icons/fa").then((mod: any) => mod[icon])
-                //     )
-                //   : null;
                 const IconComponent = triggerIcons[id];
                 return (
                   <div
