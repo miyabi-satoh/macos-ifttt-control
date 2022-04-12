@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Modal,
   Form,
@@ -36,6 +36,7 @@ type WebhookDialogProps = {
 
 export function WebhookDialog(props: WebhookDialogProps) {
   const { show, onHide, onSubmit, icons } = props;
+
   const { control, handleSubmit, reset, watch } = useForm<WebhookProps>({
     defaultValues: {
       url: "",
@@ -44,6 +45,8 @@ export function WebhookDialog(props: WebhookDialogProps) {
       title: "",
     },
   });
+
+  const ref = useRef<HTMLLabelElement>();
 
   const watchIcon = watch("icon");
 
@@ -58,6 +61,17 @@ export function WebhookDialog(props: WebhookDialogProps) {
       };
     });
   }, [icons]);
+
+  const isSelected = (name: string) => {
+    return watchIcon.includes(name);
+  };
+
+  // アイコン選択時、再レンダリングによりスクロール位置がリセットされることへの対策
+  useEffect(() => {
+    if (ref?.current) {
+      ref.current.scrollIntoView({ block: "center" });
+    }
+  }, [watchIcon]);
 
   useEffect(() => {
     reset();
@@ -108,8 +122,9 @@ export function WebhookDialog(props: WebhookDialogProps) {
                         key={icon.name}
                         id={icon.name}
                         value={icon.name}
+                        ref={isSelected(icon.name) ? ref : null}
                         variant={
-                          !!watchIcon && watchIcon.includes(icon.name)
+                          isSelected(icon.name)
                             ? "outline-primary"
                             : "outline-secondary"
                         }
