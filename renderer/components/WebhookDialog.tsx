@@ -27,16 +27,19 @@ const colors = [
   { value: "dark", text: "Gray" },
 ] as const;
 
-type WebhookDialogProps = {
+type Props = {
   show: boolean;
   onHide: () => void;
   onSubmit: SubmitHandler<WebhookProps>;
   icons: string[];
 };
 
-export function WebhookDialog(props: WebhookDialogProps) {
-  const { show, onHide, onSubmit, icons } = props;
-
+export const WebhookDialog: React.VFC<Props> = ({
+  show,
+  onHide,
+  onSubmit,
+  icons,
+}) => {
   const { control, handleSubmit, reset, watch } = useForm<WebhookProps>({
     defaultValues: {
       url: "",
@@ -183,4 +186,4 @@ export function WebhookDialog(props: WebhookDialogProps) {
       </Form>
     </Modal>
   );
-}
+};

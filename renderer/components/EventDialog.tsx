@@ -60,14 +60,12 @@ export type EventProps = {
   trigger: string;
 };
 
-type EventDialogProps = {
+type Props = {
   show: boolean;
   onHide: () => void;
   onSubmit: SubmitHandler<EventProps>;
 };
-
-export function EventDialog(props: EventDialogProps) {
-  const { show, onHide, onSubmit } = props;
+export const EventDialog: React.VFC<Props> = ({ show, onHide, onSubmit }) => {
   const { control, handleSubmit, reset } = useForm<EventProps>({
     defaultValues: {
       url: "",
@@ -86,7 +84,7 @@ export function EventDialog(props: EventDialogProps) {
           <Modal.Title>Add Event</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form.Group>
+          <Form.Group className="mb-3" controlId="url">
             <Form.Label>Event URL</Form.Label>
             <Controller
               name="url"
@@ -100,7 +98,7 @@ export function EventDialog(props: EventDialogProps) {
               )}
             />
           </Form.Group>
-          <Form.Group>
+          <Form.Group className="mb-3" controlId="trigger">
             <Form.Label>Trigger</Form.Label>
             <Controller
               name="trigger"
@@ -138,4 +136,4 @@ export function EventDialog(props: EventDialogProps) {
       </Form>
     </Modal>
   );
-}
+};

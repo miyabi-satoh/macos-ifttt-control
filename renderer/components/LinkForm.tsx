@@ -8,13 +8,11 @@ export type LinkProps = {
   publicLink: string;
 };
 
-type LinkFormProps = {
+type Props = {
   onSubmit: SubmitHandler<LinkProps>;
   defaultValues: LinkProps;
 };
-export function LinkForm(props: LinkFormProps) {
-  const { onSubmit, defaultValues } = props;
-
+export const LinkForm: React.VFC<Props> = ({ onSubmit, defaultValues }) => {
   const {
     control,
     reset,
@@ -69,4 +67,4 @@ export function LinkForm(props: LinkFormProps) {
       </Form.Group>
     </Form>
   );
-}
+};

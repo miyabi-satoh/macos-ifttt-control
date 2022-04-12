@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode } from "react";
 import Head from "next/head";
 
 type Props = {
@@ -6,7 +6,7 @@ type Props = {
   title?: string;
 };
 
-const Layout = ({ children, title }: Props) => {
+const Layout: React.VFC<Props> = ({ children, title }) => {
   return (
     <div>
       <Head>
