@@ -2,7 +2,6 @@ from datetime import datetime
 import hashlib
 import re
 import subprocess
-# import time
 import os.path
 import json
 import sys
@@ -22,11 +21,14 @@ m_cli = os.path.join(os.path.dirname(__file__),
 
 def put_log(log):
     print(log)
-    try:
-        with open(log_file, 'a') as f:
-            f.write(f'{datetime.now()} {log}\n')
-    except Exception:
-        pass
+    ###
+    # launchctlによりログ出力できるのでコメントアウト
+    ###
+    # try:
+    #     with open(log_file, 'a') as f:
+    #         f.write(f'{datetime.now()} {log}\n')
+    # except Exception:
+    #     pass
 
 
 def m_cli_exec(arg):
