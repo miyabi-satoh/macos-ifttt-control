@@ -74,7 +74,6 @@ const IndexPage = () => {
   const [pythonPath, setPythonPath] = useState<string>("");
   const [pythonV, setPythonV] = useState<string>("");
   const [isBusy, setIsBusy] = useState<boolean>(false);
-  const [timeNow, setTimeNow] = useState<number>(Date.now());
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const alertTextClass = useMemo(() => {
@@ -418,20 +417,17 @@ const IndexPage = () => {
     };
 
     f();
-  }, []);
 
-  useEffect(() => {
-    const timeoutId = setTimeout(async () => {
+    const intervalId = setInterval(async () => {
       if (!isBusy) {
         await watchAgent();
       }
-      setTimeNow(Date.now());
     }, 5000);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearInterval(intervalId);
     };
-  }, [timeNow]);
+  }, []);
 
   if (config === undefined) {
     return null;
