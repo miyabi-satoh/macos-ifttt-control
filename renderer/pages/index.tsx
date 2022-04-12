@@ -51,6 +51,7 @@ type Config = {
 type ModalType = "" | "Trigger" | "Event" | "Alert";
 type AlertType = "" | "success" | "danger" | "info";
 type AgentStatus = "" | "unloaded" | "running" | "error";
+type LogType = "stdout" | "stderr";
 
 const IndexPage = () => {
   const configDefault: string = useMemo(() => {
@@ -294,6 +295,10 @@ const IndexPage = () => {
     }
     await watchAgent();
     setIsBusy(false);
+  };
+
+  const handleViewLog = (type: LogType) => {
+    console.log(type);
   };
 
   const watchAgent = async () => {
@@ -620,6 +625,25 @@ const IndexPage = () => {
             </Stack>
           )}
         </div>
+
+        <Stack direction="horizontal" gap={3} className="pt-3">
+          <Button
+            variant="info"
+            size="sm"
+            className="text-white"
+            onClick={() => handleViewLog("stdout")}
+          >
+            View Action Log
+          </Button>
+          <Button
+            variant="info"
+            size="sm"
+            className="text-white"
+            onClick={() => handleViewLog("stderr")}
+          >
+            View Error Log
+          </Button>
+        </Stack>
 
         <Stack direction="horizontal">
           <Button
