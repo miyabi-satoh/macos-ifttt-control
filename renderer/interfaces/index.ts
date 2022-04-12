@@ -18,12 +18,10 @@ declare global {
     api: {
       getHomePath: (name: string) => Promise<string>;
       getResourcePath: (name: string) => Promise<string>;
-      getAppName: () => Promise<string>;
       readFile: (path: string) => Promise<ApiResult>;
       writeFile: (path: string, data: string) => Promise<ApiResult>;
       runWebhook: (url: string) => Promise<ApiResult>;
       exec: (cmd: string) => Promise<ApiResult>;
-      // launchAgent: (action: string) => Promise<ApiResult>;
     };
   }
 }

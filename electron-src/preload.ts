@@ -7,7 +7,6 @@ contextBridge.exposeInMainWorld("api", {
     await ipcRenderer.invoke("getHomePath", name),
   getResourcePath: async (name: string) =>
     await ipcRenderer.invoke("getResourcePath", name),
-  getAppName: async () => await ipcRenderer.invoke("getAppName"),
   readFile: async (path: string) => await ipcRenderer.invoke("readFile", path),
   writeFile: async (path: string, data: string) =>
     await ipcRenderer.invoke("writeFile", path, data),
