@@ -131,7 +131,7 @@ export function EventDialog(props: EventDialogProps) {
           <Button variant="secondary" size="sm" onClick={onHide}>
             <FaTimes /> Close
           </Button>
-          <Button variant="info" size="sm" type="submit">
+          <Button variant="info" size="sm" type="submit" className="text-white">
             <FaCheck /> Save changes
           </Button>
         </Modal.Footer>
