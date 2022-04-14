@@ -11,7 +11,7 @@ const ViewPage = () => {
   const [logContents, setLogContents] = useState<string>("");
 
   const handleBack = () => {
-    window.location.href = "/";
+    router.push("/");
   };
 
   const readLog = async () => {

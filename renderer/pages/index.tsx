@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import { WebhookDialog, WebhookProps } from "../components/WebhookDialog";
 import { EventDialog, EventProps } from "../components/EventDialog";
 import { LinkForm, LinkProps } from "../components/LinkForm";
+import { useRouter } from "next/router";
 
 const url_wiki = "https://github.com/miyabi-satoh/macos-ifttt-control/wiki";
 const mic_config_json = ".mic_config.json";
@@ -55,6 +56,7 @@ type AgentStatus = "" | "unloaded" | "running" | "error";
 type LogType = "stdout" | "stderr";
 
 const IndexPage = () => {
+  const router = useRouter();
   const [config, setConfig] = useState<Config | undefined>(undefined);
   const [triggers, setTriggers] = useState<WebhookProps[]>([]);
   const [events, setEvents] = useState<EventProps[]>([]);
@@ -291,7 +293,7 @@ const IndexPage = () => {
 
   const handleViewLog = (type: LogType) => {
     console.log(type);
-    window.location.href = `/view/${type}`;
+    router.push(`/view/${type}`);
   };
 
   const watchAgent = async () => {
