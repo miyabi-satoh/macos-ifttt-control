@@ -160,10 +160,6 @@ ipcMain.handle(
   }
 );
 
-ipcMain.handle("getAppName", (_event: IpcMainInvokeEvent) => {
-  return `${app.getName()} v${app.getVersion()}`;
-});
-
 const apiResultDefault: ApiResult = {
   status: 1,
   stderr: "",

@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import { WebhookDialog, WebhookProps } from "../components/WebhookDialog";
 import { EventDialog, EventProps } from "../components/EventDialog";
 import { LinkForm, LinkProps } from "../components/LinkForm";
+import { useRouter } from "next/router";
 
 const url_wiki = "https://github.com/miyabi-satoh/macos-ifttt-control/wiki";
 const mic_config_json = ".mic_config.json";
@@ -47,21 +48,16 @@ function validateUrl(url: string) {
 type Config = {
   publicLink: string;
 };
+const configDefault = JSON.stringify({ publicLink: "" });
 
 type ModalType = "" | "Trigger" | "Event" | "Alert";
 type AlertType = "" | "success" | "danger" | "info";
 type AgentStatus = "" | "unloaded" | "running" | "error";
+type LogType = "stdout" | "stderr";
 
 const IndexPage = () => {
-  const configDefault: string = useMemo(() => {
-    const data: Config = {
-      publicLink: "",
-    };
-    return JSON.stringify(data);
-  }, []);
-
+  const router = useRouter();
   const [config, setConfig] = useState<Config | undefined>(undefined);
-  const [title, setTitle] = useState<string>("");
   const [triggers, setTriggers] = useState<WebhookProps[]>([]);
   const [events, setEvents] = useState<EventProps[]>([]);
   const [icons, setIcons] = useState<string[]>([]);
@@ -73,7 +69,6 @@ const IndexPage = () => {
   const [pythonPath, setPythonPath] = useState<string>("");
   const [pythonV, setPythonV] = useState<string>("");
   const [isBusy, setIsBusy] = useState<boolean>(false);
-  const [timeNow, setTimeNow] = useState<number>(Date.now());
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const alertTextClass = useMemo(() => {
@@ -296,6 +291,11 @@ const IndexPage = () => {
     setIsBusy(false);
   };
 
+  const handleViewLog = (type: LogType) => {
+    console.log(type);
+    router.push(`/view/${type}`);
+  };
+
   const watchAgent = async () => {
     // console.log("watchAgent", debugInfo);
     // pythonがインストールされているかチェック
@@ -351,14 +351,15 @@ const IndexPage = () => {
 
   useEffect(() => {
     const f = async () => {
-      // Get window title
-      setTitle(await window.api.getAppName());
-
       // Get webhook triggers
       {
         const path = await window.api.getHomePath(mic_triggers_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
+        // Save empty webhook triggers
+        if (!res.status && !res.stdout) {
+          await window.api.writeFile(path, JSON.stringify(json));
+        }
         setTriggers(json);
       }
 
@@ -367,6 +368,10 @@ const IndexPage = () => {
         const path = await window.api.getHomePath(mic_events_json);
         const res = await window.api.readFile(path);
         const json = JSON.parse(res.stdout || "[]");
+        // Save empty webhook events
+        if (!res.status && !res.stdout) {
+          await window.api.writeFile(path, JSON.stringify(json));
+        }
         setEvents(json);
       }
 
@@ -405,27 +410,24 @@ const IndexPage = () => {
     };
 
     f();
-  }, []);
 
-  useEffect(() => {
-    const timeoutId = setTimeout(async () => {
+    const intervalId = setInterval(async () => {
       if (!isBusy) {
         await watchAgent();
       }
-      setTimeNow(Date.now());
     }, 5000);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearInterval(intervalId);
     };
-  }, [timeNow]);
+  }, []);
 
   if (config === undefined) {
     return null;
   }
 
   return (
-    <Layout title={title}>
+    <Layout>
       <div className="p-4">
         <div id="webhooks">
           <h6 className="pb-2 text-muted">
@@ -434,12 +436,6 @@ const IndexPage = () => {
           <div className="row px-2">
             {triggers.length > 0 ? (
               triggers.map((element, id) => {
-                // const icon = element.icon ? element.icon[0] : undefined;
-                // const IconComponent = icon
-                //   ? dynamic(() =>
-                //       import("react-icons/fa").then((mod: any) => mod[icon])
-                //     )
-                //   : null;
                 const IconComponent = triggerIcons[id];
                 return (
                   <div
@@ -612,6 +608,25 @@ const IndexPage = () => {
             </Stack>
           )}
         </div>
+
+        <Stack direction="horizontal" gap={3} className="pt-3">
+          <Button
+            variant="info"
+            size="sm"
+            className="text-white"
+            onClick={() => handleViewLog("stdout")}
+          >
+            View Action Log
+          </Button>
+          <Button
+            variant="info"
+            size="sm"
+            className="text-white"
+            onClick={() => handleViewLog("stderr")}
+          >
+            View Error Log
+          </Button>
+        </Stack>
 
         <Stack direction="horizontal">
           <Button

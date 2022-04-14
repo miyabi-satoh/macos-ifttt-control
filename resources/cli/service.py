@@ -2,7 +2,6 @@ from datetime import datetime
 import hashlib
 import re
 import subprocess
-# import time
 import os.path
 import json
 import sys
@@ -22,11 +21,14 @@ m_cli = os.path.join(os.path.dirname(__file__),
 
 def put_log(log):
     print(log)
-    try:
-        with open(log_file, 'a') as f:
-            f.write(f'{datetime.now()} {log}\n')
-    except Exception:
-        pass
+    ###
+    # launchctlによりログ出力できるのでコメントアウト
+    ###
+    # try:
+    #     with open(log_file, 'a') as f:
+    #         f.write(f'{datetime.now()} {log}\n')
+    # except Exception:
+    #     pass
 
 
 def m_cli_exec(arg):
@@ -216,15 +218,33 @@ def main(argv):
 
             if (last_command != exec_hash) and (exec_hash not in blacklist):
                 cli_command = exec_command.split('|')
+                triggered_at = cli_command[0].strip()
                 arg = cli_command[-1].strip()
 
                 # Save last command
                 with open(last_command_file, 'w') as f:
                     f.write(exec_hash)
 
+                m = re.match(
+                    r'\w+ \d{2}, \d{4} at \d{2}:\d{2}(AM|PM)', triggered_at)
+                if m:
+                    triggered_at = datetime.strptime(
+                        triggered_at, '%B %d, %Y at %I:%M%p')
+                    timediff = datetime.now() - triggered_at
+                else:
+                    timediff = None
+
                 # Log execution
-                log = f'Executing: {arg}\n - Hash: {exec_hash}\n - Last Hash: {last_command}'
+                time_log = ''
+                if timediff:
+                    time_log = f'\n - TriggeredAt: {timediff.seconds}s ago'
+                log = f'Executing: {arg}\n - Hash: {exec_hash}\n - Last Hash: {last_command}{time_log}'
                 put_log(log)
+
+                if timediff and timediff.seconds > 60 * 10:
+                    log = f'{exec_hash} Skip: More than 10 minutes ago. Command is skipped.'
+                    put_log(log)
+                    return 0
 
                 # Execute command
                 res = m_cli_exec(arg)
