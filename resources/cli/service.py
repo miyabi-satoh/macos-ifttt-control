@@ -200,12 +200,13 @@ def main(argv):
         if command_histories:
             # Get last command
             last_command = ''
-            try:
-                with open(last_command_file, 'r') as f:
-                    last_command = f.read().strip()
-            except FileNotFoundError as e:
-                put_log(f'Failed to read {last_command_file}')
-                put_log(e)
+            if os.path.isfile(last_command_file):
+                try:
+                    with open(last_command_file, 'r') as f:
+                        last_command = f.read().strip()
+                except FileNotFoundError as e:
+                    put_log(f'Failed to read {last_command_file}')
+                    put_log(e)
 
             # Execute commands
             exec_command = command_histories[-1]
@@ -235,6 +236,8 @@ def main(argv):
                     timediff = None
 
                 # Log execution
+                put_log(exec_command)
+
                 time_log = ''
                 if timediff:
                     time_log = f'\n - TriggeredAt: {timediff.seconds}s ago'
